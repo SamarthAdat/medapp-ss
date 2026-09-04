@@ -1,0 +1,221 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "env": {
+      "ANDROID_HOME": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk"
+    }
+  },
+  "presentation": {
+    "echo": true,
+    "reveal": "always",
+    "panel": "dedicated",
+    "clear": true
+  },
+  "tasks": [
+    {
+      "label": "Gradle: Sync Project",
+      "detail": "Re-configure the build and list all tasks (Android Studio's 'Sync Project with Gradle Files').",
+      "type": "shell",
+      "command": "${workspaceFolder}\\gradlew.bat",
+      "args": ["--console=plain", "projects", "tasks", "--all"],
+      "group": "build",
+      "problemMatcher": [
+        {
+          "owner": "kotlin",
+          "source": "kotlinc",
+          "fileLocation": "autoDetect",
+          "pattern": {
+            "regexp": "^\\s*([ew]):\\s+file:///(.+?):(\\d+):(\\d+)\\s+(.*)$",
+            "severity": 1,
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "message": 5
+          }
+        }
+      ]
+    },
+    {
+      "label": "Build: Debug APK",
+      "detail": "assembleDebug",
+      "type": "shell",
+      "command": "${workspaceFolder}\\gradlew.bat",
+      "args": ["--console=plain", ":app:assembleDebug"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        {
+          "owner": "kotlin",
+          "source": "kotlinc",
+          "fileLocation": "autoDetect",
+          "pattern": {
+            "regexp": "^\\s*([ew]):\\s+file:///(.+?):(\\d+):(\\d+)\\s+(.*)$",
+            "severity": 1,
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "aapt",
+          "source": "aapt",
+          "fileLocation": "absolute",
+          "pattern": {
+            "regexp": "^(.*\\.(?:xml|java|kt)):(\\d+):(?:(\\d+):)?\\s+(?:AAPT:\\s+)?(error|warning):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        }
+      ]
+    },
+    {
+      "label": "Build: Clean",
+      "type": "shell",
+      "command": "${workspaceFolder}\\gradlew.bat",
+      "args": ["--console=plain", "clean"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Emulator: Start",
+      "detail": "Boot an AVD and wait until it is ready. No-op if one is already running.",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\android-emulator.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Emulator: Stop",
+      "type": "process",
+      "command": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+      "args": ["emu", "kill"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Devices: List",
+      "type": "process",
+      "command": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+      "args": ["devices", "-l"],
+      "problemMatcher": []
+    },
+    {
+      "label": "App: Install Debug",
+      "detail": "Ensure a device is up, then build and install.",
+      "type": "shell",
+      "command": "${workspaceFolder}\\gradlew.bat",
+      "args": ["--console=plain", ":app:installDebug"],
+      "dependsOn": ["Emulator: Start"],
+      "dependsOrder": "sequence",
+      "problemMatcher": [
+        {
+          "owner": "kotlin",
+          "source": "kotlinc",
+          "fileLocation": "autoDetect",
+          "pattern": {
+            "regexp": "^\\s*([ew]):\\s+file:///(.+?):(\\d+):(\\d+)\\s+(.*)$",
+            "severity": 1,
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "message": 5
+          }
+        },
+        {
+          "owner": "aapt",
+          "source": "aapt",
+          "fileLocation": "absolute",
+          "pattern": {
+            "regexp": "^(.*\\.(?:xml|java|kt)):(\\d+):(?:(\\d+):)?\\s+(?:AAPT:\\s+)?(error|warning):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        }
+      ]
+    },
+    {
+      "label": "App: Run",
+      "detail": "Emulator -> build -> install -> launch MainActivity. The green 'Run' equivalent.",
+      "type": "process",
+      "command": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+      "args": [
+        "shell",
+        "am",
+        "start",
+        "-n",
+        "com.ss.medrecord/com.ss.medrecord.MainActivity"
+      ],
+      "dependsOn": ["App: Install Debug"],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "App: Stop",
+      "type": "process",
+      "command": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+      "args": ["shell", "am", "force-stop", "com.ss.medrecord"],
+      "problemMatcher": []
+    },
+    {
+      "label": "App: Uninstall",
+      "type": "process",
+      "command": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+      "args": ["uninstall", "com.ss.medrecord"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Logcat: App only",
+      "detail": "Tail logcat filtered to this app's process.",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\android-logcat.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: Unit",
+      "type": "shell",
+      "command": "${workspaceFolder}\\gradlew.bat",
+      "args": ["--console=plain", ":app:testDebugUnitTest"],
+      "group": "test",
+      "problemMatcher": [
+        {
+          "owner": "kotlin",
+          "source": "kotlinc",
+          "fileLocation": "autoDetect",
+          "pattern": {
+            "regexp": "^\\s*([ew]):\\s+file:///(.+?):(\\d+):(\\d+)\\s+(.*)$",
+            "severity": 1,
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "message": 5
+          }
+        }
+      ]
+    }
+  ]
+}

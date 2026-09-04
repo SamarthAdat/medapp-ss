@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "jetbrains.kotlin-server",
+    "vscjava.vscode-gradle",
+    "adelphes.android-dev-ext",
+    "diemasmichiels.emulate",
+    "redhat.java",
+    "usernamehw.errorlens"
+  ]
+}

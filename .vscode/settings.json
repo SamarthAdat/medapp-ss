@@ -1,0 +1,52 @@
+{
+  // ---------------------------------------------------------------- JDKs ----
+  // Gradle 9.5 provisions JDK 25 for this build (gradle/gradle-daemon-jvm.properties).
+  // Point the tooling at the same JDK so VS Code and the CLI agree.
+  "java.jdt.ls.java.home": "C:\\Users\\samar\\.gradle\\jdks\\eclipse_adoptium-25-amd64-windows.2",
+  "java.import.gradle.java.home": "C:\\Users\\samar\\.gradle\\jdks\\eclipse_adoptium-25-amd64-windows.2",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "C:\\Program Files\\Java\\jdk-17"
+    }
+  ],
+
+  // ------------------------------------------------------------- Gradle ----
+  // Drives the Gradle side bar (elephant icon): task tree, daemons, progress.
+  "java.import.gradle.enabled": true,
+  "java.import.gradle.wrapper.enabled": true,
+  "gradle.nestedProjects": true,
+  "gradle.reuseTerminals": "task",
+  "gradle.focusTaskInExplorer": false,
+  "gradle.showStoppedDaemons": true,
+  "gradle.allowParallelRun": false,
+
+  // ----------------------------------------------------------- Emulator ----
+  // Feeds the "Emulator" button in the editor title bar / status bar.
+  "emulator.emulatorPath": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk\\emulator",
+  "emulator.emulatorPathWindows": "C:\\Users\\samar\\AppData\\Local\\Android\\Sdk\\emulator",
+  "emulator.androidColdBoot": false,
+  "emulator.hasEditorTitleIcon": true,
+
+  // ------------------------------------------------------ Android ext ------
+  "android-dev-ext.appSourceRoot": "app/src/main",
+  // The bundled analyzer is Java-only; this module is pure Kotlin, so leaving it
+  // on just adds noise. The debugger still works with it off.
+  "android-dev-ext.languageSupport": false,
+
+  // -------------------------------------------------------------- Files ----
+  // Keep build output out of search and off the file watcher (it is large).
+  "search.exclude": {
+    "**/build": true,
+    "**/.gradle": true,
+    "**/.idea": true
+  },
+  "files.watcherExclude": {
+    "**/build/**": true,
+    "**/.gradle/**": true
+  },
+  "[kotlin]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  }
+}

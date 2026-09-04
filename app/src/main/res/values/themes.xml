@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Theme applied once Compose takes over rendering. -->
+    <style name="Theme.MedRecord" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+      Launch theme. androidx.core:core-splashscreen requires the activity theme to
+      derive from Theme.SplashScreen and to name the theme to swap in afterwards.
+    -->
+    <style name="Theme.MedRecord.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.MedRecord</item>
+    </style>
+</resources>
