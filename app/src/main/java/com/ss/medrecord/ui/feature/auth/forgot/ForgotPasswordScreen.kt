@@ -1,4 +1,4 @@
-package com.ss.medrecord.ui.feature.auth.login
+package com.ss.medrecord.ui.feature.auth.forgot
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -25,15 +28,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.ui.feature.auth.AuthScaffold
 import com.ss.medrecord.ui.feature.auth.AuthTextField
-import com.ss.medrecord.ui.feature.auth.PasswordTextField
 import com.ss.medrecord.ui.theme.MedRecordTheme
 
 @Composable
-fun LoginRoute(
-    onSignedIn: () -> Unit,
-    onNavigateToSignUp: () -> Unit,
-    onNavigateToForgotPassword: () -> Unit,
-    viewModel: LoginViewModel = hiltViewModel(),
+fun ForgotPasswordRoute(
+    onNavigateBack: () -> Unit,
+    viewModel: ForgotPasswordViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -41,15 +41,14 @@ fun LoginRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                LoginEffect.SignedIn -> onSignedIn()
-                LoginEffect.NavigateToSignUp -> onNavigateToSignUp()
-                LoginEffect.NavigateToForgotPassword -> onNavigateToForgotPassword()
-                is LoginEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
+                ForgotPasswordEffect.NavigateBack -> onNavigateBack()
+                is ForgotPasswordEffect.ShowMessage ->
+                    snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
 
-    LoginScreen(
+    ForgotPasswordScreen(
         state = state,
         onEvent = viewModel::onEvent,
         snackbarHostState = snackbarHostState,
@@ -57,9 +56,9 @@ fun LoginRoute(
 }
 
 @Composable
-fun LoginScreen(
-    state: LoginUiState,
-    onEvent: (LoginEvent) -> Unit,
+fun ForgotPasswordScreen(
+    state: ForgotPasswordUiState,
+    onEvent: (ForgotPasswordEvent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -68,30 +67,37 @@ fun LoginScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         AuthScaffold(
-            title = "Welcome back",
-            subtitle = "Sign in to your MedRecord Keeper account.",
+            title = "Reset password",
+            subtitle = "We will email you a link to set a new password.",
             modifier = Modifier.padding(innerPadding),
         ) {
             AuthTextField(
                 value = state.email,
-                onValueChange = { onEvent(LoginEvent.EmailChanged(it)) },
+                onValueChange = { onEvent(ForgotPasswordEvent.EmailChanged(it)) },
                 label = "Email",
                 errorMessage = state.emailError,
                 keyboardType = KeyboardType.Email,
-                enabled = !state.isSubmitting,
-            )
-
-            PasswordTextField(
-                value = state.password,
-                onValueChange = { onEvent(LoginEvent.PasswordChanged(it)) },
-                label = "Password",
-                errorMessage = state.passwordError,
                 imeAction = ImeAction.Done,
                 enabled = !state.isSubmitting,
             )
 
+            if (state.isSent) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ),
+                ) {
+                    Text(
+                        text = "If an account exists for that address, a reset link is on its way. Check your inbox and spam folder.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+
             Button(
-                onClick = { onEvent(LoginEvent.Submit) },
+                onClick = { onEvent(ForgotPasswordEvent.Submit) },
                 enabled = state.canSubmit,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,16 +108,12 @@ fun LoginScreen(
                         CircularProgressIndicator(strokeWidth = 2.dp)
                     }
                 } else {
-                    Text(text = "Sign in")
+                    Text(text = "Send reset link")
                 }
             }
 
-            TextButton(onClick = { onEvent(LoginEvent.ForgotPasswordClicked) }) {
-                Text(text = "Forgot password?")
-            }
-
-            TextButton(onClick = { onEvent(LoginEvent.SignUpClicked) }) {
-                Text(text = "New here? Create an account")
+            TextButton(onClick = { onEvent(ForgotPasswordEvent.BackToSignIn) }) {
+                Text(text = "Back to sign in")
             }
         }
     }
@@ -119,8 +121,11 @@ fun LoginScreen(
 
 @Preview(showBackground = true)
 @Composable
-private fun LoginScreenPreview() {
+private fun ForgotPasswordScreenPreview() {
     MedRecordTheme {
-        LoginScreen(state = LoginUiState(email = "user@example.com"), onEvent = {})
+        ForgotPasswordScreen(
+            state = ForgotPasswordUiState(email = "user@example.com", isSent = true),
+            onEvent = {},
+        )
     }
 }

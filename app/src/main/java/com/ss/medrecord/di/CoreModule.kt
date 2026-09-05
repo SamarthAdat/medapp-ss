@@ -9,6 +9,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import javax.inject.Singleton
 
 /** Bindings for interface -> implementation pairs that live for the app session. */
@@ -31,4 +33,14 @@ object CoreProvidersModule {
     @Provides
     @Singleton
     fun provideDispatcherProvider(): DispatcherProvider = DefaultDispatcherProvider()
+
+    /**
+     * SupervisorJob so one failing long-lived collector cannot cancel the rest
+     * of the app-scoped work alongside it.
+     */
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(dispatchers: DispatcherProvider): CoroutineScope =
+        CoroutineScope(SupervisorJob() + dispatchers.default)
 }

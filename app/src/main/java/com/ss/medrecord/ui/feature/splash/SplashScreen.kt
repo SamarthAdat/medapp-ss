@@ -8,26 +8,22 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
+import com.ss.medrecord.ui.theme.MedRecordTheme
 
 /**
- * Placeholder for the session-check screen. Phase 1 replaces the fixed delay
- * with a real Firebase Auth session lookup plus consent-version check.
+ * Shown while the session is still resolving - reading the cached Firebase
+ * credential, opening the encrypted database and checking the consent version.
+ *
+ * It has no navigation of its own. The navigation host moves off this screen as
+ * soon as the session settles into a real state, so there is exactly one place
+ * that decides where a user lands.
  */
 @Composable
-fun SplashScreen(
-    onSessionResolved: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LaunchedEffect(Unit) {
-        delay(SPLASH_HOLD_MILLIS)
-        onSessionResolved()
-    }
-
+fun SplashScreen(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -42,4 +38,10 @@ fun SplashScreen(
     }
 }
 
-private const val SPLASH_HOLD_MILLIS = 600L
+@Preview(showBackground = true)
+@Composable
+private fun SplashScreenPreview() {
+    MedRecordTheme {
+        SplashScreen()
+    }
+}

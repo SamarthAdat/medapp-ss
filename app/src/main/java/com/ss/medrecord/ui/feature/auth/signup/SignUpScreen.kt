@@ -1,4 +1,4 @@
-package com.ss.medrecord.ui.feature.auth.login
+package com.ss.medrecord.ui.feature.auth.signup
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -17,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,11 +31,10 @@ import com.ss.medrecord.ui.feature.auth.PasswordTextField
 import com.ss.medrecord.ui.theme.MedRecordTheme
 
 @Composable
-fun LoginRoute(
-    onSignedIn: () -> Unit,
-    onNavigateToSignUp: () -> Unit,
-    onNavigateToForgotPassword: () -> Unit,
-    viewModel: LoginViewModel = hiltViewModel(),
+fun SignUpRoute(
+    onAccountCreated: () -> Unit,
+    onNavigateToSignIn: () -> Unit,
+    viewModel: SignUpViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -41,15 +42,14 @@ fun LoginRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                LoginEffect.SignedIn -> onSignedIn()
-                LoginEffect.NavigateToSignUp -> onNavigateToSignUp()
-                LoginEffect.NavigateToForgotPassword -> onNavigateToForgotPassword()
-                is LoginEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
+                SignUpEffect.AccountCreated -> onAccountCreated()
+                SignUpEffect.NavigateToSignIn -> onNavigateToSignIn()
+                is SignUpEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
 
-    LoginScreen(
+    SignUpScreen(
         state = state,
         onEvent = viewModel::onEvent,
         snackbarHostState = snackbarHostState,
@@ -57,9 +57,9 @@ fun LoginRoute(
 }
 
 @Composable
-fun LoginScreen(
-    state: LoginUiState,
-    onEvent: (LoginEvent) -> Unit,
+fun SignUpScreen(
+    state: SignUpUiState,
+    onEvent: (SignUpEvent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -68,13 +68,21 @@ fun LoginScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         AuthScaffold(
-            title = "Welcome back",
-            subtitle = "Sign in to your MedRecord Keeper account.",
+            title = "Create account",
+            subtitle = "One account holds records for you and your family.",
             modifier = Modifier.padding(innerPadding),
         ) {
             AuthTextField(
+                value = state.name,
+                onValueChange = { onEvent(SignUpEvent.NameChanged(it)) },
+                label = "Full name",
+                errorMessage = state.nameError,
+                enabled = !state.isSubmitting,
+            )
+
+            AuthTextField(
                 value = state.email,
-                onValueChange = { onEvent(LoginEvent.EmailChanged(it)) },
+                onValueChange = { onEvent(SignUpEvent.EmailChanged(it)) },
                 label = "Email",
                 errorMessage = state.emailError,
                 keyboardType = KeyboardType.Email,
@@ -83,15 +91,31 @@ fun LoginScreen(
 
             PasswordTextField(
                 value = state.password,
-                onValueChange = { onEvent(LoginEvent.PasswordChanged(it)) },
+                onValueChange = { onEvent(SignUpEvent.PasswordChanged(it)) },
                 label = "Password",
                 errorMessage = state.passwordError,
+                enabled = !state.isSubmitting,
+            )
+
+            PasswordTextField(
+                value = state.confirmPassword,
+                onValueChange = { onEvent(SignUpEvent.ConfirmPasswordChanged(it)) },
+                label = "Confirm password",
+                errorMessage = state.confirmPasswordError,
                 imeAction = ImeAction.Done,
                 enabled = !state.isSubmitting,
             )
 
+            Text(
+                text = "You will be asked to review and accept the data-processing consent before adding any records.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+
             Button(
-                onClick = { onEvent(LoginEvent.Submit) },
+                onClick = { onEvent(SignUpEvent.Submit) },
                 enabled = state.canSubmit,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,16 +126,12 @@ fun LoginScreen(
                         CircularProgressIndicator(strokeWidth = 2.dp)
                     }
                 } else {
-                    Text(text = "Sign in")
+                    Text(text = "Create account")
                 }
             }
 
-            TextButton(onClick = { onEvent(LoginEvent.ForgotPasswordClicked) }) {
-                Text(text = "Forgot password?")
-            }
-
-            TextButton(onClick = { onEvent(LoginEvent.SignUpClicked) }) {
-                Text(text = "New here? Create an account")
+            TextButton(onClick = { onEvent(SignUpEvent.SignInClicked) }) {
+                Text(text = "Already have an account? Sign in")
             }
         }
     }
@@ -119,8 +139,8 @@ fun LoginScreen(
 
 @Preview(showBackground = true)
 @Composable
-private fun LoginScreenPreview() {
+private fun SignUpScreenPreview() {
     MedRecordTheme {
-        LoginScreen(state = LoginUiState(email = "user@example.com"), onEvent = {})
+        SignUpScreen(state = SignUpUiState(name = "Asha"), onEvent = {})
     }
 }

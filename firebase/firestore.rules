@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// Firestore security rules, v1 (spec section 9.1).
+//
+// Phase 1 covers the account holder document and its consent ledger. Patient,
+// visit, report and audit collections are added in their own phases; anything
+// not matched here is denied by the final catch-all.
+//
+// Deploy with:  firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Documents carry their own userId so ownership can be checked from the
+    // payload as well as the path. A client that gets the path right but the
+    // field wrong is still rejected.
+    function payloadBelongsTo(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && payloadBelongsTo(userId);
+
+      // The email is fixed at signup and only Firebase Auth may change it, so
+      // it cannot be rewritten here to impersonate another account.
+      allow update: if isOwner(userId)
+                    && payloadBelongsTo(userId)
+                    && request.resource.data.email == resource.data.email;
+
+      // Account deletion is a server-side cascade (Phase 9), not a client
+      // delete, so that Storage objects and the audit stub are handled too.
+      allow delete: if false;
+
+      // Consent records are append-only evidence. Once written they cannot be
+      // edited or removed by anyone holding a client credential - that is what
+      // makes the consent history worth anything in an audit.
+      match /consents/{consentId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.version is int
+                      && request.resource.data.acceptedAt is int;
+        allow update, delete: if false;
+      }
+    }
+
+    // Deny by default. Every new collection must opt in above, so forgetting to
+    // write a rule fails closed rather than exposing patient data.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
