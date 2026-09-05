@@ -40,6 +40,8 @@ fun HomeRoute(
     onNavigateToPatients: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAddPatient: () -> Unit,
+    onNavigateToVisits: () -> Unit,
+    onNavigateToAddVisit: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -51,6 +53,8 @@ fun HomeRoute(
                 HomeEffect.NavigateToPatients -> onNavigateToPatients()
                 HomeEffect.NavigateToSettings -> onNavigateToSettings()
                 HomeEffect.NavigateToAddPatient -> onNavigateToAddPatient()
+                HomeEffect.NavigateToVisits -> onNavigateToVisits()
+                HomeEffect.NavigateToAddVisit -> onNavigateToAddVisit()
                 is HomeEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -125,14 +129,35 @@ fun HomeScreen(
                     }
                 }
 
+                // Quick actions from spec 5.3.
+                Button(
+                    onClick = { onEvent(HomeEvent.AddVisit) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = "Add visit")
+                }
+
+                OutlinedButton(
+                    onClick = { onEvent(HomeEvent.OpenVisits) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = if (state.visitCount == 0) {
+                            "Visit records"
+                        } else {
+                            "Visit records (${state.visitCount})"
+                        },
+                    )
+                }
+
                 Text(
-                    text = "Visits, reports and reminders for this patient arrive in Phases 4 to 6.",
+                    text = "Reports and medicine reminders arrive in Phases 5 and 6.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            Button(
+            OutlinedButton(
                 onClick = { onEvent(HomeEvent.OpenPatients) },
                 modifier = Modifier.fillMaxWidth(),
             ) {

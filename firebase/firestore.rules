@@ -87,6 +87,53 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Clinics and hospitals. Account-scoped rather than per-patient: one
+      // clinic serves the whole family, and it holds no clinical data of its
+      // own - only where care happened.
+      match /facilities/{facilityId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.facilityId == facilityId
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() > 0
+                      && hasConsent(userId);
+
+        allow update: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.facilityId == resource.data.facilityId
+                      && hasConsent(userId);
+
+        // Soft delete only, so the removal syncs and visits keep resolving the
+        // place they happened at.
+        allow delete: if false;
+      }
+
+      // Visits carry both userId and patientId, so ownership is enforced from
+      // the payload as well as the path (spec 9.1). Neither may be rewritten
+      // after creation: moving a visit to another patient would silently
+      // reattribute a medical record.
+      match /visits/{visitId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.visitId == visitId
+                      && request.resource.data.patientId is string
+                      && request.resource.data.facilityId is string
+                      && request.resource.data.visitDateEpochDay is int
+                      && hasConsent(userId);
+
+        allow update: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.visitId == resource.data.visitId
+                      && request.resource.data.patientId == resource.data.patientId
+                      && hasConsent(userId);
+
+        allow delete: if false;
+      }
+
       // The audit trail (spec 4.9, 9.5). Its whole value rests on being
       // append-only: a client that could edit or delete entries could erase the
       // record of whatever it did. Create is the only write ever permitted, and

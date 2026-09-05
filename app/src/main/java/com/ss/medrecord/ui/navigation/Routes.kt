@@ -54,3 +54,18 @@ data class PatientEditDestination(val patientId: String? = null)
 
 @Serializable
 data object SettingsDestination
+
+// --- Visits and facilities (Phase 4) --------------------------------------
+
+@Serializable
+data object VisitListDestination
+
+/** A null visitId means "add"; a present one means "edit". */
+@Serializable
+data class VisitEditDestination(val visitId: String? = null)
+
+@Serializable
+data class VisitDetailDestination(val visitId: String)
+
+@Serializable
+data object FacilityListDestination

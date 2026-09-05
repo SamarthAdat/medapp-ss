@@ -13,8 +13,10 @@ import com.ss.medrecord.core.connectivity.ConnectivityObserver
 import com.ss.medrecord.core.connectivity.NetworkStatus
 import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
+import com.ss.medrecord.data.local.dao.FacilityDao
 import com.ss.medrecord.data.local.dao.PatientDao
 import com.ss.medrecord.data.local.dao.UserDao
+import com.ss.medrecord.data.local.dao.VisitDao
 import com.ss.medrecord.data.sync.SyncStateHolder
 import com.ss.medrecord.data.sync.SyncWorker
 import com.ss.medrecord.di.ApplicationScope
@@ -52,6 +54,8 @@ class SyncManager @Inject constructor(
     consentDao: ConsentDao,
     patientDao: PatientDao,
     auditLogDao: AuditLogDao,
+    facilityDao: FacilityDao,
+    visitDao: VisitDao,
     @param:ApplicationScope private val scope: CoroutineScope,
 ) {
 
@@ -61,11 +65,16 @@ class SyncManager @Inject constructor(
         consentDao.observePendingCount(),
         patientDao.observePendingCount(),
         auditLogDao.observePendingCount(),
+        facilityDao.observePendingCount(),
+        visitDao.observePendingCount(),
     ) { counts -> counts.sum() }
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, 0)
 
-    val conflictCount: StateFlow<Int> = patientDao.observeConflictCount()
+    val conflictCount: StateFlow<Int> = combine(
+        patientDao.observeConflictCount(),
+        visitDao.observeConflictCount(),
+    ) { counts -> counts.sum() }
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, 0)
 

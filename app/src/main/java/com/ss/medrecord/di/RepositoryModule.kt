@@ -2,10 +2,14 @@ package com.ss.medrecord.di
 
 import com.ss.medrecord.data.repository.AuthRepositoryImpl
 import com.ss.medrecord.data.repository.ConsentRepositoryImpl
+import com.ss.medrecord.data.repository.FacilityRepositoryImpl
 import com.ss.medrecord.data.repository.PatientRepositoryImpl
+import com.ss.medrecord.data.repository.VisitRepositoryImpl
 import com.ss.medrecord.domain.repository.AuthRepository
 import com.ss.medrecord.domain.repository.ConsentRepository
+import com.ss.medrecord.domain.repository.FacilityRepository
 import com.ss.medrecord.domain.repository.PatientRepository
+import com.ss.medrecord.domain.repository.VisitRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -27,4 +31,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPatientRepository(impl: PatientRepositoryImpl): PatientRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFacilityRepository(impl: FacilityRepositoryImpl): FacilityRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindVisitRepository(impl: VisitRepositoryImpl): VisitRepository
 }

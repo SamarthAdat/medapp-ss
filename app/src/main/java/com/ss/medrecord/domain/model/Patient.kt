@@ -1,5 +1,6 @@
 package com.ss.medrecord.domain.model
 
+import com.ss.medrecord.core.common.toInitials
 import java.time.LocalDate
 import java.time.Period
 
@@ -43,15 +44,7 @@ data class Patient(
         return Period.between(dob, today).years
     }
 
-    /** Up to two letters for the avatar placeholder, e.g. "Asha Rao" -> "AR". */
-    val initials: String
-        get() = name.trim()
-            .split(Regex("\\s+"))
-            .filter { it.isNotEmpty() }
-            .take(2)
-            .map { it.first().uppercaseChar() }
-            .joinToString(separator = "")
-            .ifEmpty { "?" }
+    val initials: String get() = name.toInitials()
 }
 
 /** How the patient relates to the account holder (spec section 4.2). */

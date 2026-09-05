@@ -3,19 +3,25 @@ package com.ss.medrecord.ui.feature.home
 import androidx.lifecycle.viewModelScope
 import com.ss.medrecord.core.connectivity.ConnectivityObserver
 import com.ss.medrecord.core.ui.BaseViewModel
+import com.ss.medrecord.domain.repository.VisitRepository
 import com.ss.medrecord.domain.session.ActivePatientManager
 import com.ss.medrecord.domain.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     connectivityObserver: ConnectivityObserver,
     activePatientManager: ActivePatientManager,
     private val syncManager: SyncManager,
+    visitRepository: VisitRepository,
 ) : BaseViewModel<HomeUiState, HomeEvent, HomeEffect>(
     initialState = HomeUiState(networkStatus = connectivityObserver.currentStatus()),
 ) {
@@ -37,6 +43,13 @@ class HomeViewModel @Inject constructor(
         syncManager.status
             .onEach { status -> setState { copy(syncStatus = status) } }
             .launchIn(viewModelScope)
+
+        activePatientManager.activePatient
+            .flatMapLatest { patient ->
+                if (patient == null) flowOf(0) else visitRepository.observeVisitCount(patient.patientId)
+            }
+            .onEach { count -> setState { copy(visitCount = count) } }
+            .launchIn(viewModelScope)
     }
 
     override fun onEvent(event: HomeEvent) {
@@ -46,6 +59,8 @@ class HomeViewModel @Inject constructor(
 
             HomeEvent.OpenSettings -> sendEffect(HomeEffect.NavigateToSettings)
             HomeEvent.AddFirstPatient -> sendEffect(HomeEffect.NavigateToAddPatient)
+            HomeEvent.OpenVisits -> sendEffect(HomeEffect.NavigateToVisits)
+            HomeEvent.AddVisit -> sendEffect(HomeEffect.NavigateToAddVisit)
 
             HomeEvent.SyncNowClicked -> {
                 if (currentState.syncStatus.isOnline) {

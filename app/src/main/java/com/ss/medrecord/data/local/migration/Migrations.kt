@@ -76,5 +76,82 @@ object Migrations {
         }
     }
 
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    /** Phase 4 adds facilities and visits. */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `facilities` (
+                    `facility_id` TEXT NOT NULL,
+                    `user_id` TEXT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `type` TEXT NOT NULL,
+                    `address` TEXT,
+                    `latitude` REAL,
+                    `longitude` REAL,
+                    `phone` TEXT,
+                    `notes` TEXT,
+                    `created_at` INTEGER NOT NULL,
+                    `updated_at` INTEGER NOT NULL,
+                    `deleted_at` INTEGER,
+                    `sync_status` TEXT NOT NULL,
+                    PRIMARY KEY(`facility_id`),
+                    FOREIGN KEY(`user_id`) REFERENCES `users`(`user_id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_facilities_user_id` ON `facilities` (`user_id`)",
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_facilities_user_id_deleted_at`
+                ON `facilities` (`user_id`, `deleted_at`)
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `visits` (
+                    `visit_id` TEXT NOT NULL,
+                    `user_id` TEXT NOT NULL,
+                    `patient_id` TEXT NOT NULL,
+                    `facility_id` TEXT NOT NULL,
+                    `doctor_name` TEXT,
+                    `visit_date_epoch_day` INTEGER NOT NULL,
+                    `notes` TEXT,
+                    `next_visit_date_epoch_day` INTEGER,
+                    `created_at` INTEGER NOT NULL,
+                    `updated_at` INTEGER NOT NULL,
+                    `deleted_at` INTEGER,
+                    `sync_status` TEXT NOT NULL,
+                    PRIMARY KEY(`visit_id`),
+                    FOREIGN KEY(`patient_id`) REFERENCES `patients`(`patient_id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`facility_id`) REFERENCES `facilities`(`facility_id`)
+                        ON UPDATE NO ACTION ON DELETE NO ACTION
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_visits_user_id` ON `visits` (`user_id`)")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_visits_facility_id` ON `visits` (`facility_id`)",
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_visits_patient_id_deleted_at_visit_date_epoch_day`
+                ON `visits` (`patient_id`, `deleted_at`, `visit_date_epoch_day`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_visits_user_id_next_visit_date_epoch_day`
+                ON `visits` (`user_id`, `next_visit_date_epoch_day`)
+                """.trimIndent(),
+            )
+        }
+    }
+
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }

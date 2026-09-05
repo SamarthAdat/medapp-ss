@@ -21,6 +21,9 @@ import com.ss.medrecord.ui.feature.home.HomeRoute
 import com.ss.medrecord.ui.feature.patient.edit.PatientEditRoute
 import com.ss.medrecord.ui.feature.patient.list.PatientListRoute
 import com.ss.medrecord.ui.feature.settings.SettingsRoute
+import com.ss.medrecord.ui.feature.visit.detail.VisitDetailRoute
+import com.ss.medrecord.ui.feature.visit.edit.VisitEditRoute
+import com.ss.medrecord.ui.feature.visit.list.VisitListRoute
 import com.ss.medrecord.ui.feature.splash.SplashScreen
 
 /**
@@ -105,6 +108,8 @@ fun MedRecordNavHost(
                     onNavigateToAddPatient = {
                         navController.navigate(PatientEditDestination())
                     },
+                    onNavigateToVisits = { navController.navigate(VisitListDestination) },
+                    onNavigateToAddVisit = { navController.navigate(VisitEditDestination()) },
                 )
             }
             composable<PatientListDestination> {
@@ -123,6 +128,22 @@ fun MedRecordNavHost(
             }
             composable<SettingsDestination> {
                 SettingsRoute(onNavigateBack = { navController.popBackStack() })
+            }
+            composable<VisitListDestination> {
+                VisitListRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = { navController.navigate(VisitDetailDestination(it)) },
+                    onNavigateToEdit = { navController.navigate(VisitEditDestination(it)) },
+                )
+            }
+            composable<VisitEditDestination> {
+                VisitEditRoute(onNavigateBack = { navController.popBackStack() })
+            }
+            composable<VisitDetailDestination> {
+                VisitDetailRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(VisitEditDestination(it)) },
+                )
             }
         }
     }

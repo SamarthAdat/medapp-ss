@@ -6,8 +6,10 @@ import androidx.room.Room
 import com.ss.medrecord.data.local.MedRecordDatabase
 import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
+import com.ss.medrecord.data.local.dao.FacilityDao
 import com.ss.medrecord.data.local.dao.PatientDao
 import com.ss.medrecord.data.local.dao.UserDao
+import com.ss.medrecord.data.local.dao.VisitDao
 import com.ss.medrecord.data.local.migration.Migrations
 import com.ss.medrecord.core.security.DatabaseKeyProvider
 import dagger.Module
@@ -76,4 +78,10 @@ object DatabaseModule {
 
     @Provides
     fun provideAuditLogDao(database: MedRecordDatabase): AuditLogDao = database.auditLogDao()
+
+    @Provides
+    fun provideFacilityDao(database: MedRecordDatabase): FacilityDao = database.facilityDao()
+
+    @Provides
+    fun provideVisitDao(database: MedRecordDatabase): VisitDao = database.visitDao()
 }

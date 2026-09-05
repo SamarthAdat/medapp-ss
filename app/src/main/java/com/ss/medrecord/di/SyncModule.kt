@@ -5,8 +5,10 @@ import androidx.work.WorkManager
 import com.ss.medrecord.data.audit.AuditLoggerImpl
 import com.ss.medrecord.data.sync.AuditSyncer
 import com.ss.medrecord.data.sync.ConsentSyncer
+import com.ss.medrecord.data.sync.FacilitySyncer
 import com.ss.medrecord.data.sync.PatientSyncer
 import com.ss.medrecord.data.sync.UserSyncer
+import com.ss.medrecord.data.sync.VisitSyncer
 import com.ss.medrecord.domain.audit.AuditLogger
 import com.ss.medrecord.domain.sync.EntitySyncer
 import dagger.Binds
@@ -38,6 +40,14 @@ abstract class SyncBindingsModule {
     @Binds
     @IntoSet
     abstract fun bindPatientSyncer(impl: PatientSyncer): EntitySyncer
+
+    @Binds
+    @IntoSet
+    abstract fun bindFacilitySyncer(impl: FacilitySyncer): EntitySyncer
+
+    @Binds
+    @IntoSet
+    abstract fun bindVisitSyncer(impl: VisitSyncer): EntitySyncer
 
     @Binds
     @IntoSet

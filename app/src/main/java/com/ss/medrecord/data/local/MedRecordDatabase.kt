@@ -6,12 +6,16 @@ import androidx.room.TypeConverters
 import com.ss.medrecord.data.local.converter.Converters
 import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
+import com.ss.medrecord.data.local.dao.FacilityDao
 import com.ss.medrecord.data.local.dao.PatientDao
 import com.ss.medrecord.data.local.dao.UserDao
+import com.ss.medrecord.data.local.dao.VisitDao
 import com.ss.medrecord.data.local.entity.AuditLogEntity
 import com.ss.medrecord.data.local.entity.ConsentEntity
+import com.ss.medrecord.data.local.entity.FacilityEntity
 import com.ss.medrecord.data.local.entity.PatientEntity
 import com.ss.medrecord.data.local.entity.UserEntity
+import com.ss.medrecord.data.local.entity.VisitEntity
 
 /**
  * The single on-device store, opened through SQLCipher so the file on disk is
@@ -25,6 +29,7 @@ import com.ss.medrecord.data.local.entity.UserEntity
  *  1 - users, consents (Phase 1)
  *  2 - patients (Phase 2)
  *  3 - audit_logs (Phase 3)
+ *  4 - facilities, visits (Phase 4)
  */
 @Database(
     entities = [
@@ -32,8 +37,10 @@ import com.ss.medrecord.data.local.entity.UserEntity
         ConsentEntity::class,
         PatientEntity::class,
         AuditLogEntity::class,
+        FacilityEntity::class,
+        VisitEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -46,6 +53,10 @@ abstract class MedRecordDatabase : RoomDatabase() {
     abstract fun patientDao(): PatientDao
 
     abstract fun auditLogDao(): AuditLogDao
+
+    abstract fun facilityDao(): FacilityDao
+
+    abstract fun visitDao(): VisitDao
 
     companion object {
         const val NAME = "medrecord.db"
