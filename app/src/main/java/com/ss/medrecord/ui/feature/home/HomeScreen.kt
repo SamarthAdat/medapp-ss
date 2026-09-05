@@ -12,11 +12,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -25,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.domain.model.Patient
 import com.ss.medrecord.domain.model.Relationship
 import com.ss.medrecord.ui.components.ActivePatientChip
+import com.ss.medrecord.ui.components.SyncStatusIndicator
 import com.ss.medrecord.ui.theme.MedRecordTheme
 
 /**
@@ -39,6 +43,7 @@ fun HomeRoute(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -46,11 +51,16 @@ fun HomeRoute(
                 HomeEffect.NavigateToPatients -> onNavigateToPatients()
                 HomeEffect.NavigateToSettings -> onNavigateToSettings()
                 HomeEffect.NavigateToAddPatient -> onNavigateToAddPatient()
+                is HomeEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
 
-    HomeScreen(state = state, onEvent = viewModel::onEvent)
+    HomeScreen(
+        state = state,
+        onEvent = viewModel::onEvent,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,9 +69,11 @@ fun HomeScreen(
     state: HomeUiState,
     onEvent: (HomeEvent) -> Unit,
     modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "MedRecord Keeper") },
@@ -86,6 +98,12 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Tapping the indicator is the manual "Sync now" from spec 5.13.
+            SyncStatusIndicator(
+                status = state.syncStatus,
+                onClick = { onEvent(HomeEvent.SyncNowClicked) },
+            )
+
             if (state.needsFirstPatient) {
                 FirstPatientCard(onAdd = { onEvent(HomeEvent.AddFirstPatient) })
             } else {
@@ -103,11 +121,6 @@ fun HomeScreen(
                         Text(
                             text = activePatientSummary(state.activePatient),
                             style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            text = if (state.isOnline) "Online" else "Offline",
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(top = 8.dp),
                         )
                     }
                 }
@@ -178,6 +191,10 @@ private fun HomeScreenPreview() {
         HomeScreen(
             state = HomeUiState(
                 patientCount = 2,
+                syncStatus = com.ss.medrecord.domain.sync.SyncStatusUi(
+                    isOnline = true,
+                    pendingCount = 2,
+                ),
                 activePatient = Patient(
                     patientId = "p1",
                     userId = "u1",

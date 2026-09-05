@@ -7,6 +7,9 @@ import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.entity.toDomain
 import com.ss.medrecord.data.local.entity.toEntity
 import com.ss.medrecord.data.remote.UserRemoteDataSource
+import com.ss.medrecord.domain.audit.AuditLogger
+import com.ss.medrecord.domain.model.AuditAction
+import com.ss.medrecord.domain.model.AuditEntityType
 import com.ss.medrecord.domain.model.ConsentRecord
 import com.ss.medrecord.domain.model.ConsentType
 import com.ss.medrecord.domain.model.SyncStatus
@@ -23,6 +26,7 @@ class ConsentRepositoryImpl @Inject constructor(
     private val consentDao: ConsentDao,
     private val userDao: UserDao,
     private val userRemote: UserRemoteDataSource,
+    private val auditLogger: AuditLogger,
     private val dispatchers: DispatcherProvider,
 ) : ConsentRepository {
 
@@ -51,6 +55,13 @@ class ConsentRepositoryImpl @Inject constructor(
                     version = version,
                     acceptedAt = acceptedAt,
                 )
+                records.forEach { record ->
+                    auditLogger.log(
+                        action = AuditAction.CREATE,
+                        entityType = AuditEntityType.CONSENT,
+                        entityId = record.consentId,
+                    )
+                }
 
                 // Acceptance is already durable locally; a failed push is left
                 // PENDING for the sync worker rather than shown as an error,
@@ -58,6 +69,13 @@ class ConsentRepositoryImpl @Inject constructor(
                 runCatching {
                     userRemote.insertConsents(records)
                     userDao.getUser(userId)?.toDomain()?.let { userRemote.upsertUser(it) }
+                }.onSuccess {
+                    // Consent documents are immutable server-side, so a row left
+                    // PENDING here can never be pushed again - the rules reject
+                    // the second write. Stamping on success is what keeps the
+                    // outbox honest.
+                    consentDao.markSyncStatus(records.map { it.consentId }, SyncStatus.SYNCED)
+                    userDao.markSyncStatus(userId, SyncStatus.SYNCED)
                 }
                 Unit
             }

@@ -50,5 +50,31 @@ object Migrations {
         }
     }
 
-    val ALL = arrayOf(MIGRATION_1_2)
+    /** Phase 3 adds the audit trail. */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `audit_logs` (
+                    `log_id` TEXT NOT NULL,
+                    `user_id` TEXT NOT NULL,
+                    `patient_id` TEXT,
+                    `action` TEXT NOT NULL,
+                    `entity_type` TEXT NOT NULL,
+                    `entity_id` TEXT NOT NULL,
+                    `timestamp` INTEGER NOT NULL,
+                    `device_id_hash` TEXT NOT NULL,
+                    `sync_status` TEXT NOT NULL,
+                    PRIMARY KEY(`log_id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_logs_user_id` ON `audit_logs` (`user_id`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_logs_patient_id` ON `audit_logs` (`patient_id`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_logs_sync_status` ON `audit_logs` (`sync_status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_audit_logs_timestamp` ON `audit_logs` (`timestamp`)")
+        }
+    }
+
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

@@ -104,6 +104,22 @@ interface PatientDao {
     @Query("SELECT * FROM patients WHERE sync_status IN ('PENDING', 'FAILED')")
     suspend fun getPendingPatients(): List<PatientEntity>
 
+    @Query("UPDATE patients SET sync_status = :status WHERE patient_id IN (:patientIds)")
+    suspend fun markSyncStatus(patientIds: List<String>, status: SyncStatus)
+
+    @Query("SELECT COUNT(*) FROM patients WHERE sync_status IN ('PENDING', 'FAILED')")
+    fun observePendingCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM patients WHERE sync_status = 'CONFLICT'")
+    fun observeConflictCount(): Flow<Int>
+
+    /**
+     * Includes soft-deleted rows. Pull-merge has to compare against them, or a
+     * deletion would look like a missing record and be re-created from remote.
+     */
+    @Query("SELECT * FROM patients WHERE patient_id = :patientId")
+    suspend fun getPatientIncludingDeleted(patientId: String): PatientEntity?
+
     @Query("DELETE FROM patients")
     suspend fun deleteAll()
 }

@@ -5,6 +5,7 @@ import com.ss.medrecord.core.ui.UiEffect
 import com.ss.medrecord.core.ui.UiEvent
 import com.ss.medrecord.core.ui.UiState
 import com.ss.medrecord.domain.model.Patient
+import com.ss.medrecord.domain.sync.SyncStatusUi
 
 /**
  * The contract every feature follows: one state class, one sealed event
@@ -17,6 +18,7 @@ data class HomeUiState(
     val networkStatus: NetworkStatus = NetworkStatus.UNAVAILABLE,
     val activePatient: Patient? = null,
     val patientCount: Int = 0,
+    val syncStatus: SyncStatusUi = SyncStatusUi(),
 ) : UiState {
     val isOnline: Boolean get() = networkStatus == NetworkStatus.AVAILABLE
 
@@ -29,10 +31,12 @@ sealed interface HomeEvent : UiEvent {
     data object OpenSettings : HomeEvent
     data object SwitchPatient : HomeEvent
     data object AddFirstPatient : HomeEvent
+    data object SyncNowClicked : HomeEvent
 }
 
 sealed interface HomeEffect : UiEffect {
     data object NavigateToPatients : HomeEffect
     data object NavigateToSettings : HomeEffect
     data object NavigateToAddPatient : HomeEffect
+    data class ShowMessage(val message: String) : HomeEffect
 }

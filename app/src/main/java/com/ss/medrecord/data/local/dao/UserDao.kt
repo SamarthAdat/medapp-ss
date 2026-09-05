@@ -38,9 +38,15 @@ interface UserDao {
         syncStatus: SyncStatus = SyncStatus.PENDING,
     )
 
-    /** Phase 3 sync outbox: everything still waiting to be pushed. */
+    /** Sync outbox: everything still waiting to be pushed. */
     @Query("SELECT * FROM users WHERE sync_status IN ('PENDING', 'FAILED')")
     suspend fun getPendingUsers(): List<UserEntity>
+
+    @Query("UPDATE users SET sync_status = :status WHERE user_id = :userId")
+    suspend fun markSyncStatus(userId: String, status: SyncStatus)
+
+    @Query("SELECT COUNT(*) FROM users WHERE sync_status IN ('PENDING', 'FAILED')")
+    fun observePendingCount(): Flow<Int>
 
     /**
      * Clears every local row. Used on sign-out so that a second account on the

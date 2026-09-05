@@ -4,9 +4,11 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.ss.medrecord.data.local.converter.Converters
+import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
 import com.ss.medrecord.data.local.dao.PatientDao
 import com.ss.medrecord.data.local.dao.UserDao
+import com.ss.medrecord.data.local.entity.AuditLogEntity
 import com.ss.medrecord.data.local.entity.ConsentEntity
 import com.ss.medrecord.data.local.entity.PatientEntity
 import com.ss.medrecord.data.local.entity.UserEntity
@@ -22,14 +24,16 @@ import com.ss.medrecord.data.local.entity.UserEntity
  * Version history:
  *  1 - users, consents (Phase 1)
  *  2 - patients (Phase 2)
+ *  3 - audit_logs (Phase 3)
  */
 @Database(
     entities = [
         UserEntity::class,
         ConsentEntity::class,
         PatientEntity::class,
+        AuditLogEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -40,6 +44,8 @@ abstract class MedRecordDatabase : RoomDatabase() {
     abstract fun consentDao(): ConsentDao
 
     abstract fun patientDao(): PatientDao
+
+    abstract fun auditLogDao(): AuditLogDao
 
     companion object {
         const val NAME = "medrecord.db"

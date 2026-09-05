@@ -86,6 +86,29 @@ service cloud.firestore {
         // grace period is observed (9.6). The hard purge runs server-side.
         allow delete: if false;
       }
+
+      // The audit trail (spec 4.9, 9.5). Its whole value rests on being
+      // append-only: a client that could edit or delete entries could erase the
+      // record of whatever it did. Create is the only write ever permitted, and
+      // the rules pin the shape so a malformed or back-dated entry is refused.
+      match /auditLogs/{logId} {
+        // Readable by the owner so the app can show consent and access history.
+        // Compliance review happens server-side with admin credentials.
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.logId == logId
+                      && request.resource.data.action in
+                         ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'EXPORT', 'SHARE']
+                      && request.resource.data.entityType is string
+                      && request.resource.data.entityId is string
+                      && request.resource.data.timestamp is int
+                      && request.resource.data.deviceIdHash is string;
+
+        // No exceptions, for anyone holding a client credential.
+        allow update, delete: if false;
+      }
     }
 
     // Deny by default. Every new collection must opt in above, so forgetting to

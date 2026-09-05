@@ -44,6 +44,15 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions {
+        unitTests {
+            // android.util.Log throws by default under the JVM stub. It is a
+            // side-effect-only API, so returning defaults is the honest
+            // behaviour and keeps logging statements out of test setup.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 kotlin {
@@ -70,6 +79,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // ProcessLifecycleOwner: drives the sync-on-foreground trigger (spec 6.2).
+    implementation(libs.androidx.lifecycle.process)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))

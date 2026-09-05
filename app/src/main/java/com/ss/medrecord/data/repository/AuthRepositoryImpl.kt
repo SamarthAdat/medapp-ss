@@ -3,6 +3,7 @@ package com.ss.medrecord.data.repository
 import com.ss.medrecord.core.common.AppError
 import com.ss.medrecord.core.common.DataResult
 import com.ss.medrecord.core.common.DispatcherProvider
+import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.datastore.ActivePatientStore
 import com.ss.medrecord.data.local.entity.toDomain
@@ -26,6 +27,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val authDataSource: FirebaseAuthDataSource,
     private val userRemote: UserRemoteDataSource,
     private val userDao: UserDao,
+    private val auditLogDao: AuditLogDao,
     private val activePatientStore: ActivePatientStore,
     private val dispatchers: DispatcherProvider,
 ) : AuthRepository {
@@ -94,6 +96,11 @@ class AuthRepositoryImpl @Inject constructor(
             // outside the database and has to be cleared explicitly.
             userDao.deleteAll()
             activePatientStore.clear()
+            // Audit entries are evidence, not cache, so only the ones already
+            // safe in Firestore are dropped. Unpushed entries stay - they are
+            // encrypted at rest, scoped to their own userId by every query, and
+            // discarding them would lose the record of what was done.
+            auditLogDao.deleteSynced()
         }
     }
 

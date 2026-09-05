@@ -7,6 +7,9 @@ import com.ss.medrecord.data.local.entity.toDomain
 import com.ss.medrecord.data.local.entity.toEntity
 import com.ss.medrecord.data.remote.PatientRemoteDataSource
 import com.ss.medrecord.data.remote.UserRemoteDataSource
+import com.ss.medrecord.domain.audit.AuditLogger
+import com.ss.medrecord.domain.model.AuditAction
+import com.ss.medrecord.domain.model.AuditEntityType
 import com.ss.medrecord.domain.model.Patient
 import com.ss.medrecord.domain.model.SyncStatus
 import com.ss.medrecord.domain.repository.PatientRepository
@@ -21,6 +24,7 @@ import javax.inject.Singleton
 class PatientRepositoryImpl @Inject constructor(
     private val patientDao: PatientDao,
     private val patientRemote: PatientRemoteDataSource,
+    private val auditLogger: AuditLogger,
     private val dispatchers: DispatcherProvider,
 ) : PatientRepository {
 
@@ -49,6 +53,7 @@ class PatientRepositoryImpl @Inject constructor(
                     updatedAt = now,
                 )
                 patientDao.upsert(record.toEntity(syncStatus = SyncStatus.PENDING))
+                audit(AuditAction.CREATE, record.patientId)
                 pushBestEffort(record)
                 record.patientId
             }
@@ -59,6 +64,7 @@ class PatientRepositoryImpl @Inject constructor(
             DataResult.catching(UserRemoteDataSource::mapFirestoreError) {
                 val record = patient.copy(updatedAt = System.currentTimeMillis())
                 patientDao.upsert(record.toEntity(syncStatus = SyncStatus.PENDING))
+                audit(AuditAction.UPDATE, record.patientId)
                 pushBestEffort(record)
             }
         }
@@ -68,6 +74,7 @@ class PatientRepositoryImpl @Inject constructor(
             DataResult.catching(UserRemoteDataSource::mapFirestoreError) {
                 val now = System.currentTimeMillis()
                 patientDao.setArchived(patientId, archived, now)
+                audit(AuditAction.UPDATE, patientId)
                 patientDao.getPatient(patientId)?.toDomain()?.let { pushBestEffort(it) }
                 Unit
             }
@@ -81,6 +88,9 @@ class PatientRepositoryImpl @Inject constructor(
                 // observe/get queries deliberately exclude deleted rows.
                 val record = patientDao.getPatient(patientId)?.toDomain()
                 patientDao.softDelete(patientId, now)
+                // Deleting a patient is one of the actions section 9.5 names
+                // explicitly; the entry outlives the record it describes.
+                audit(AuditAction.DELETE, patientId)
                 record?.let { pushBestEffort(it.copy(deletedAt = now, updatedAt = now)) }
                 Unit
             }
@@ -102,6 +112,15 @@ class PatientRepositoryImpl @Inject constructor(
                 patientDao.upsertAll(toApply.map { it.toEntity(syncStatus = SyncStatus.SYNCED) })
             }
         }
+
+    private suspend fun audit(action: AuditAction, patientId: String) {
+        auditLogger.log(
+            action = action,
+            entityType = AuditEntityType.PATIENT,
+            entityId = patientId,
+            patientId = patientId,
+        )
+    }
 
     /**
      * Pushes to Firestore without letting a network failure fail the write the

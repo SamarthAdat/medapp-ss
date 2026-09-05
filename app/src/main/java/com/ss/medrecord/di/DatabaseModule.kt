@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.room.Room
 import com.ss.medrecord.data.local.MedRecordDatabase
+import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
 import com.ss.medrecord.data.local.dao.PatientDao
 import com.ss.medrecord.data.local.dao.UserDao
@@ -72,4 +73,7 @@ object DatabaseModule {
 
     @Provides
     fun providePatientDao(database: MedRecordDatabase): PatientDao = database.patientDao()
+
+    @Provides
+    fun provideAuditLogDao(database: MedRecordDatabase): AuditLogDao = database.auditLogDao()
 }
