@@ -18,7 +18,8 @@ import com.ss.medrecord.ui.feature.auth.login.LoginRoute
 import com.ss.medrecord.ui.feature.auth.signup.SignUpRoute
 import com.ss.medrecord.ui.feature.consent.ConsentRoute
 import com.ss.medrecord.ui.feature.home.HomeRoute
-import com.ss.medrecord.ui.feature.patient.list.PatientListScreen
+import com.ss.medrecord.ui.feature.patient.edit.PatientEditRoute
+import com.ss.medrecord.ui.feature.patient.list.PatientListRoute
 import com.ss.medrecord.ui.feature.settings.SettingsRoute
 import com.ss.medrecord.ui.feature.splash.SplashScreen
 
@@ -101,10 +102,24 @@ fun MedRecordNavHost(
                 HomeRoute(
                     onNavigateToPatients = { navController.navigate(PatientListDestination) },
                     onNavigateToSettings = { navController.navigate(SettingsDestination) },
+                    onNavigateToAddPatient = {
+                        navController.navigate(PatientEditDestination())
+                    },
                 )
             }
             composable<PatientListDestination> {
-                PatientListScreen()
+                PatientListRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEdit = { patientId ->
+                        navController.navigate(PatientEditDestination(patientId))
+                    },
+                    // Picking a patient is the switcher's whole purpose, so it
+                    // closes and returns the user to what they were looking at.
+                    onPatientActivated = { navController.popBackStack() },
+                )
+            }
+            composable<PatientEditDestination> {
+                PatientEditRoute(onNavigateBack = { navController.popBackStack() })
             }
             composable<SettingsDestination> {
                 SettingsRoute(onNavigateBack = { navController.popBackStack() })

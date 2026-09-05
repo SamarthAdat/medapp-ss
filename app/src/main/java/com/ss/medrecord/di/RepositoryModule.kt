@@ -2,8 +2,10 @@ package com.ss.medrecord.di
 
 import com.ss.medrecord.data.repository.AuthRepositoryImpl
 import com.ss.medrecord.data.repository.ConsentRepositoryImpl
+import com.ss.medrecord.data.repository.PatientRepositoryImpl
 import com.ss.medrecord.domain.repository.AuthRepository
 import com.ss.medrecord.domain.repository.ConsentRepository
+import com.ss.medrecord.domain.repository.PatientRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +23,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindConsentRepository(impl: ConsentRepositoryImpl): ConsentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPatientRepository(impl: PatientRepositoryImpl): PatientRepository
 }

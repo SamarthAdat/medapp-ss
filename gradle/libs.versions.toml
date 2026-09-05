@@ -20,6 +20,7 @@ room = "2.8.4"
 work = "2.11.2"
 datastore = "1.2.1"
 coroutines = "1.11.0"
+desugarJdkLibs = "2.1.5"
 serialization = "1.11.0"
 
 # --- Security / storage ----------------------------------------------------
@@ -83,6 +84,7 @@ androidx-room-testing = { group = "androidx.room", name = "room-testing", versio
 androidx-sqlite = { group = "androidx.sqlite", name = "sqlite", version.ref = "sqlite" }
 sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 
 # Background work

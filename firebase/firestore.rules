@@ -25,6 +25,15 @@ service cloud.firestore {
       return request.resource.data.userId == userId;
     }
 
+    // Consent before any processing (spec 9.5), enforced server-side so it does
+    // not depend on the client honouring its own session gate. Costs one
+    // document read per patient write, which is the right trade for a control
+    // that a compromised or modified client cannot skip.
+    function hasConsent(userId) {
+      let user = get(/databases/$(database)/documents/users/$(userId)).data;
+      return user.consentVersion is int && user.consentVersion >= 1;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) && payloadBelongsTo(userId);
@@ -49,6 +58,33 @@ service cloud.firestore {
                       && request.resource.data.version is int
                       && request.resource.data.acceptedAt is int;
         allow update, delete: if false;
+      }
+
+      // Patient profiles. Every record in later phases hangs off one of these,
+      // so this is where the per-patient half of the 9.1 scoping starts.
+      match /patients/{patientId} {
+        allow read: if isOwner(userId);
+
+        // No writing patient data before consent is on file (spec 9.5). The
+        // client enforces this through the session gate; the rule makes it
+        // true regardless of what the client does.
+        allow create: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.patientId == patientId
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() > 0
+                      && hasConsent(userId);
+
+        // patientId and ownership are immutable: a rename is fine, moving a
+        // record to another account or id is not.
+        allow update: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.patientId == resource.data.patientId
+                      && hasConsent(userId);
+
+        // Deletion is the soft-delete write above, so the removal syncs and the
+        // grace period is observed (9.6). The hard purge runs server-side.
+        allow delete: if false;
       }
     }
 

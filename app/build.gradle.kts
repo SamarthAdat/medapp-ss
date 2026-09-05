@@ -35,6 +35,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Makes java.time available down to minSdk 24. This app is built around
+        // dates - dates of birth, visit dates, reminder schedules - and the
+        // legacy Calendar API is a reliable source of timezone bugs.
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
@@ -55,6 +59,8 @@ ksp {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
     // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)

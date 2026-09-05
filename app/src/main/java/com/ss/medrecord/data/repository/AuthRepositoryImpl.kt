@@ -4,6 +4,7 @@ import com.ss.medrecord.core.common.AppError
 import com.ss.medrecord.core.common.DataResult
 import com.ss.medrecord.core.common.DispatcherProvider
 import com.ss.medrecord.data.local.dao.UserDao
+import com.ss.medrecord.data.local.datastore.ActivePatientStore
 import com.ss.medrecord.data.local.entity.toDomain
 import com.ss.medrecord.data.local.entity.toEntity
 import com.ss.medrecord.data.remote.FirebaseAuthDataSource
@@ -25,6 +26,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val authDataSource: FirebaseAuthDataSource,
     private val userRemote: UserRemoteDataSource,
     private val userDao: UserDao,
+    private val activePatientStore: ActivePatientStore,
     private val dispatchers: DispatcherProvider,
 ) : AuthRepository {
 
@@ -88,7 +90,10 @@ class AuthRepositoryImpl @Inject constructor(
             authDataSource.signOut()
             // Local rows are dropped so a different account signing in on this
             // device can never read the previous holder's cached records.
+            // Patients cascade from the user row; the remembered selection lives
+            // outside the database and has to be cleared explicitly.
             userDao.deleteAll()
+            activePatientStore.clear()
         }
     }
 

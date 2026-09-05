@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.room.Room
 import com.ss.medrecord.data.local.MedRecordDatabase
 import com.ss.medrecord.data.local.dao.ConsentDao
+import com.ss.medrecord.data.local.dao.PatientDao
 import com.ss.medrecord.data.local.dao.UserDao
+import com.ss.medrecord.data.local.migration.Migrations
 import com.ss.medrecord.core.security.DatabaseKeyProvider
 import dagger.Module
 import dagger.Provides
@@ -57,6 +59,7 @@ object DatabaseModule {
             // SupportOpenHelperFactory zeroes the array it is given, so it gets
             // its own copy and the caller's stays usable.
             .openHelperFactory(SupportOpenHelperFactory(passphrase.copyOf()))
+            .addMigrations(*Migrations.ALL)
             .build()
             .also { passphrase.fill(0) }
     }
@@ -66,4 +69,7 @@ object DatabaseModule {
 
     @Provides
     fun provideConsentDao(database: MedRecordDatabase): ConsentDao = database.consentDao()
+
+    @Provides
+    fun providePatientDao(database: MedRecordDatabase): PatientDao = database.patientDao()
 }
