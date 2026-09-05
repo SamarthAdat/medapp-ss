@@ -1,24 +1,43 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-
-# Secrets and credentials - never committed.
+# --- Secrets and credentials: never commit ---------------------------------
+# google-services.json carries the Firebase project's API key. The key ships
+# inside the APK anyway, so this is not a private key, but keeping it out of the
+# repo avoids quota abuse on a public clone and keeps project config per-developer.
 google-services.json
 secrets.properties
+# Signing material for release builds (Phase 10).
 *.jks
 *.keystore
+keystore.properties
 
-# Kotlin
+# --- Local machine configuration -------------------------------------------
+# Contains the absolute SDK path; different on every machine.
+local.properties
+
+# --- Build output ----------------------------------------------------------
+/build
+/app/build
+.gradle
+/captures
+.cxx
+.externalNativeBuild
 .kotlin/
+
+# --- IDE -------------------------------------------------------------------
+# Android Studio regenerates these per machine and they churn constantly.
+# Shared code style and inspection profiles are the exception and stay tracked.
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+*.iml
+
+# --- OS --------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# --- JVM crash logs --------------------------------------------------------
+hs_err_pid*
+replay_pid*
+*.log
+
+# Note: no blanket *.jar rule. gradle/wrapper/gradle-wrapper.jar is tracked on
+# purpose so the project builds from a clean clone without a Gradle install.
