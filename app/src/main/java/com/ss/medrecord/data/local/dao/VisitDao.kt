@@ -3,8 +3,8 @@ package com.ss.medrecord.data.local.dao
 import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.ss.medrecord.data.local.entity.FacilityEntity
 import com.ss.medrecord.data.local.entity.VisitEntity
 import com.ss.medrecord.domain.model.SyncStatus
@@ -91,10 +91,17 @@ interface VisitDao {
     @Query("SELECT COUNT(*) FROM visits WHERE patient_id = :patientId AND deleted_at IS NULL")
     fun observeVisitCount(patientId: String): Flow<Int>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    /**
+     * Room's @Upsert, not @Insert(REPLACE). REPLACE is implemented as DELETE
+     * followed by INSERT, and a delete fires ON DELETE CASCADE - so re-applying
+     * a parent row during sync silently destroyed every child row hanging off
+     * it, including records created on this device that had never reached
+     * Firestore. @Upsert updates the row in place and nothing cascades.
+     */
+    @Upsert
     suspend fun upsert(visit: VisitEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertAll(visits: List<VisitEntity>)
 
     @Query(

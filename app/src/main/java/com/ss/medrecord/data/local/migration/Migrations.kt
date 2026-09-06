@@ -153,5 +153,52 @@ object Migrations {
         }
     }
 
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    /** Phase 5 adds report file metadata. */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `reports` (
+                    `report_id` TEXT NOT NULL,
+                    `user_id` TEXT NOT NULL,
+                    `patient_id` TEXT NOT NULL,
+                    `visit_id` TEXT NOT NULL,
+                    `file_name` TEXT NOT NULL,
+                    `file_type` TEXT NOT NULL,
+                    `file_size_bytes` INTEGER NOT NULL,
+                    `local_file_path` TEXT,
+                    `remote_storage_url` TEXT,
+                    `upload_status` TEXT NOT NULL,
+                    `created_at` INTEGER NOT NULL,
+                    `updated_at` INTEGER NOT NULL,
+                    `deleted_at` INTEGER,
+                    `sync_status` TEXT NOT NULL,
+                    PRIMARY KEY(`report_id`),
+                    FOREIGN KEY(`patient_id`) REFERENCES `patients`(`patient_id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`visit_id`) REFERENCES `visits`(`visit_id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_reports_user_id` ON `reports` (`user_id`)")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_reports_visit_id` ON `reports` (`visit_id`)",
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_reports_patient_id_deleted_at_created_at`
+                ON `reports` (`patient_id`, `deleted_at`, `created_at`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_reports_upload_status`
+                ON `reports` (`upload_status`)
+                """.trimIndent(),
+            )
+        }
+    }
+
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

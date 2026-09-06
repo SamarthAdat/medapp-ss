@@ -42,6 +42,7 @@ fun HomeRoute(
     onNavigateToAddPatient: () -> Unit,
     onNavigateToVisits: () -> Unit,
     onNavigateToAddVisit: () -> Unit,
+    onNavigateToReports: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -55,6 +56,7 @@ fun HomeRoute(
                 HomeEffect.NavigateToAddPatient -> onNavigateToAddPatient()
                 HomeEffect.NavigateToVisits -> onNavigateToVisits()
                 HomeEffect.NavigateToAddVisit -> onNavigateToAddVisit()
+                HomeEffect.NavigateToReports -> onNavigateToReports()
                 is HomeEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -150,8 +152,21 @@ fun HomeScreen(
                     )
                 }
 
+                OutlinedButton(
+                    onClick = { onEvent(HomeEvent.OpenReports) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = if (state.reportCount == 0) {
+                            "Reports"
+                        } else {
+                            "Reports (${state.reportCount})"
+                        },
+                    )
+                }
+
                 Text(
-                    text = "Reports and medicine reminders arrive in Phases 5 and 6.",
+                    text = "Medicine reminders arrive in Phase 6.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

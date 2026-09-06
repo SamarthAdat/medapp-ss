@@ -2,6 +2,7 @@ package com.ss.medrecord.ui.feature.visit.detail
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -9,17 +10,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -27,8 +34,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.core.ui.components.FullScreenLoading
 import com.ss.medrecord.domain.model.Facility
 import com.ss.medrecord.domain.model.FacilityType
+import com.ss.medrecord.domain.model.Report
 import com.ss.medrecord.domain.model.Visit
 import com.ss.medrecord.domain.model.VisitWithFacility
+import com.ss.medrecord.ui.components.ReportTile
 import com.ss.medrecord.ui.theme.MedRecordTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -37,20 +46,40 @@ import java.time.format.DateTimeFormatter
 fun VisitDetailRoute(
     onNavigateBack: () -> Unit,
     onEdit: (String) -> Unit,
+    onOpenReport: (String) -> Unit,
     viewModel: VisitDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 VisitDetailEffect.NavigateBack -> onNavigateBack()
                 is VisitDetailEffect.NavigateToEdit -> onEdit(effect.visitId)
+                is VisitDetailEffect.NavigateToReport -> onOpenReport(effect.reportId)
+                is VisitDetailEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
 
-    VisitDetailScreen(state = state, onEvent = viewModel::onEvent)
+    if (state.isAttachSheetVisible) {
+        AttachReportSheet(
+            onFileSelected = { uri -> viewModel.onEvent(VisitDetailEvent.FileSelected(uri)) },
+            onDismiss = { viewModel.onEvent(VisitDetailEvent.AttachDismissed) },
+            createCaptureUri = viewModel::newCaptureUri,
+            onPickerUnavailable = { message ->
+                viewModel.onEvent(VisitDetailEvent.PickerUnavailable(message))
+            },
+        )
+    }
+
+    VisitDetailScreen(
+        state = state,
+        onEvent = viewModel::onEvent,
+        loadThumbnail = viewModel::loadThumbnail,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,9 +88,12 @@ fun VisitDetailScreen(
     state: VisitDetailUiState,
     onEvent: (VisitDetailEvent) -> Unit,
     modifier: Modifier = Modifier,
+    loadThumbnail: suspend (Report) -> ImageBitmap? = { null },
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "Visit") },
@@ -172,9 +204,15 @@ fun VisitDetailScreen(
                     }
                 }
 
+                ReportsSection(
+                    reports = state.reports,
+                    isImporting = state.isImporting,
+                    onEvent = onEvent,
+                    loadThumbnail = loadThumbnail,
+                )
+
                 Text(
-                    text = "Attached reports and prescribed medicines appear here from " +
-                        "Phases 5 and 6.",
+                    text = "Prescribed medicines appear here from Phase 6.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
@@ -185,6 +223,71 @@ fun VisitDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(text = "Edit visit")
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Attached reports (spec section 5.6). A column of full-width tiles rather than
+ * a grid: this screen already scrolls vertically, and a nested scrolling grid
+ * inside it would fight the parent for the same gesture.
+ */
+@Composable
+private fun ReportsSection(
+    reports: List<Report>,
+    isImporting: Boolean,
+    onEvent: (VisitDetailEvent) -> Unit,
+    loadThumbnail: suspend (Report) -> ImageBitmap?,
+) {
+    Column(modifier = Modifier.padding(top = 12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (reports.isEmpty()) "Reports" else "Reports (${reports.size})",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            if (isImporting) {
+                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+            } else {
+                TextButton(onClick = { onEvent(VisitDetailEvent.AttachClicked) }) {
+                    Text(text = "Attach")
+                }
+            }
+        }
+
+        if (reports.isEmpty()) {
+            Text(
+                text = "Scans, prescriptions and lab results attached to this visit " +
+                    "appear here.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+
+        reports.forEach { report ->
+            Column(modifier = Modifier.padding(top = 8.dp)) {
+                ReportTile(
+                    report = report,
+                    subtitle = null,
+                    onClick = { onEvent(VisitDetailEvent.ReportClicked(report)) },
+                    loadThumbnail = loadThumbnail,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (report.canRetryUpload) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(onClick = { onEvent(VisitDetailEvent.RetryUpload(report)) }) {
+                            Text(text = "Retry upload")
+                        }
+                    }
                 }
             }
         }

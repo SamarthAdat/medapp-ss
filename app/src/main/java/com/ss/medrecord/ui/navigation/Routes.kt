@@ -69,3 +69,11 @@ data class VisitDetailDestination(val visitId: String)
 
 @Serializable
 data object FacilityListDestination
+
+// --- Reports (Phase 5) -----------------------------------------------------
+
+@Serializable
+data object ReportListDestination
+
+@Serializable
+data class ReportViewerDestination(val reportId: String)

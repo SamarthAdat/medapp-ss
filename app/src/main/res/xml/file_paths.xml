@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The only path the app ever shares outward: one cache directory the camera
+  writes a capture into. Deliberately narrow - a broader grant (external-path,
+  or files-path) would expose the encrypted report store and the database file
+  to any app holding the Uri.
+-->
+<paths>
+    <cache-path
+        name="capture"
+        path="capture/" />
+</paths>

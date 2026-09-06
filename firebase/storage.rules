@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// Cloud Storage security rules (spec sections 9.1 and 6.3).
+//
+// Report files live at:
+//   users/{userId}/patients/{patientId}/reports/{reportId}
+//
+// The path is the access boundary: no account can reach another account's
+// prefix, and no patient's reports can be written under another patient's.
+//
+// Deploy with:  firebase deploy --only storage
+// These rules and firebase/firestore.rules are one unit - a report is a
+// document plus an object, and deploying only one leaves the other half
+// unreachable or unwritable.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // The 2 MB cap (spec 5.8), enforced where it cannot be talked out of.
+    // The client checks first so the user gets a message that explains the
+    // refusal and offers compression; this check is the one that holds, because
+    // a modified client can skip the first and this rule runs on Google's side.
+    function isWithinSizeLimit() {
+      return request.resource.size <= 2 * 1024 * 1024;
+    }
+
+    // Only what the app can render back to the user. An object the viewer
+    // cannot open is not a medical record, it is a payload.
+    function isAllowedType() {
+      return request.resource.contentType == 'application/pdf'
+             || request.resource.contentType.matches('image/.*');
+    }
+
+    match /users/{userId}/patients/{patientId}/reports/{reportId} {
+      allow read: if isOwner(userId);
+
+      // Update is permitted so an interrupted upload can be retried by
+      // overwriting its own object, rather than accumulating partial files
+      // nothing points at.
+      allow create, update: if isOwner(userId)
+                            && isWithinSizeLimit()
+                            && isAllowedType();
+
+      // Deletion is a soft delete on the metadata document, and the object is
+      // removed by the server-side purge once the grace period expires (spec
+      // 9.6). A client delete would make that grace period meaningless for the
+      // one part of a report that cannot be reconstructed.
+      allow delete: if false;
+    }
+
+    // Deny by default. Consent is not re-checked here: an object is only
+    // reachable through its Firestore document, and creating that document
+    // already requires a recorded consent version (see firestore.rules).
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,16 +1,11 @@
 package com.ss.medrecord.core.security
 
 import android.content.Context
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import android.util.Base64
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.GeneralSecurityException
-import java.security.KeyStore
 import java.security.SecureRandom
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -64,12 +59,12 @@ class DatabaseKeyProvider @Inject constructor(
     @Synchronized
     fun resetKeyMaterial() {
         prefs.edit().remove(KEY_WRAPPED_PASSPHRASE).commit()
-        runCatching { androidKeyStore().deleteEntry(KEY_ALIAS) }
+        KeystoreAesKeys.deleteKey(KEY_ALIAS)
     }
 
     private fun wrap(passphrase: ByteArray): String {
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, getOrCreateKeystoreKey())
+            init(Cipher.ENCRYPT_MODE, KeystoreAesKeys.getOrCreateKey(KEY_ALIAS))
         }
         val iv = cipher.iv
         val ciphertext = cipher.doFinal(passphrase)
@@ -82,7 +77,7 @@ class DatabaseKeyProvider @Inject constructor(
         require(blob.size > GCM_IV_LENGTH_BYTES) { "Wrapped passphrase is truncated" }
         val iv = blob.copyOfRange(0, GCM_IV_LENGTH_BYTES)
         val ciphertext = blob.copyOfRange(GCM_IV_LENGTH_BYTES, blob.size)
-        val key = androidKeyStore().getKey(KEY_ALIAS, null) as? SecretKey
+        val key = KeystoreAesKeys.getKey(KEY_ALIAS)
             ?: throw GeneralSecurityException("Keystore entry $KEY_ALIAS is missing")
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
             init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
@@ -90,40 +85,13 @@ class DatabaseKeyProvider @Inject constructor(
         return cipher.doFinal(ciphertext)
     }
 
-    private fun getOrCreateKeystoreKey(): SecretKey {
-        val keyStore = androidKeyStore()
-        (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
-
-        val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
-        generator.init(
-            KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-            )
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setKeySize(AES_KEY_SIZE_BITS)
-                // Background sync must be able to open the database while the
-                // device is locked, so the key is not gated on user auth.
-                .setUserAuthenticationRequired(false)
-                .setRandomizedEncryptionRequired(true)
-                .build(),
-        )
-        return generator.generateKey()
-    }
-
-    private fun androidKeyStore(): KeyStore =
-        KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-
     private companion object {
-        const val ANDROID_KEYSTORE = "AndroidKeyStore"
         const val KEY_ALIAS = "medrecord_db_master_key"
-        const val TRANSFORMATION = "AES/GCM/NoPadding"
+        const val TRANSFORMATION = KeystoreAesKeys.TRANSFORMATION
         const val PREFS_NAME = "medrecord_secure_prefs"
         const val KEY_WRAPPED_PASSPHRASE = "wrapped_db_passphrase"
         const val PASSPHRASE_LENGTH_BYTES = 32
-        const val GCM_IV_LENGTH_BYTES = 12
-        const val GCM_TAG_LENGTH_BITS = 128
-        const val AES_KEY_SIZE_BITS = 256
+        const val GCM_IV_LENGTH_BYTES = KeystoreAesKeys.GCM_IV_LENGTH_BYTES
+        const val GCM_TAG_LENGTH_BITS = KeystoreAesKeys.GCM_TAG_LENGTH_BITS
     }
 }

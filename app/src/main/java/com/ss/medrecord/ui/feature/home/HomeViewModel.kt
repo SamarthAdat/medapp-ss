@@ -3,6 +3,7 @@ package com.ss.medrecord.ui.feature.home
 import androidx.lifecycle.viewModelScope
 import com.ss.medrecord.core.connectivity.ConnectivityObserver
 import com.ss.medrecord.core.ui.BaseViewModel
+import com.ss.medrecord.domain.repository.ReportRepository
 import com.ss.medrecord.domain.repository.VisitRepository
 import com.ss.medrecord.domain.session.ActivePatientManager
 import com.ss.medrecord.domain.sync.SyncManager
@@ -22,6 +23,7 @@ class HomeViewModel @Inject constructor(
     activePatientManager: ActivePatientManager,
     private val syncManager: SyncManager,
     visitRepository: VisitRepository,
+    reportRepository: ReportRepository,
 ) : BaseViewModel<HomeUiState, HomeEvent, HomeEffect>(
     initialState = HomeUiState(networkStatus = connectivityObserver.currentStatus()),
 ) {
@@ -50,6 +52,17 @@ class HomeViewModel @Inject constructor(
             }
             .onEach { count -> setState { copy(visitCount = count) } }
             .launchIn(viewModelScope)
+
+        activePatientManager.activePatient
+            .flatMapLatest { patient ->
+                if (patient == null) {
+                    flowOf(0)
+                } else {
+                    reportRepository.observeReportCountForPatient(patient.patientId)
+                }
+            }
+            .onEach { count -> setState { copy(reportCount = count) } }
+            .launchIn(viewModelScope)
     }
 
     override fun onEvent(event: HomeEvent) {
@@ -60,6 +73,7 @@ class HomeViewModel @Inject constructor(
             HomeEvent.OpenSettings -> sendEffect(HomeEffect.NavigateToSettings)
             HomeEvent.AddFirstPatient -> sendEffect(HomeEffect.NavigateToAddPatient)
             HomeEvent.OpenVisits -> sendEffect(HomeEffect.NavigateToVisits)
+            HomeEvent.OpenReports -> sendEffect(HomeEffect.NavigateToReports)
             HomeEvent.AddVisit -> sendEffect(HomeEffect.NavigateToAddVisit)
 
             HomeEvent.SyncNowClicked -> {

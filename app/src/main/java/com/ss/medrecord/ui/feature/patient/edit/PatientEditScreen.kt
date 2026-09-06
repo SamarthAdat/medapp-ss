@@ -174,7 +174,7 @@ fun PatientEditScreen(
             )
 
             Text(
-                text = "A profile photo can be added once file uploads arrive in Phase 5.",
+                text = "Profile photos are not stored yet. Reports and scans attach to a visit rather than to a profile.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

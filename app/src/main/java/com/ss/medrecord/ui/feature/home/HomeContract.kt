@@ -19,6 +19,7 @@ data class HomeUiState(
     val activePatient: Patient? = null,
     val patientCount: Int = 0,
     val visitCount: Int = 0,
+    val reportCount: Int = 0,
     val syncStatus: SyncStatusUi = SyncStatusUi(),
 ) : UiState {
     val isOnline: Boolean get() = networkStatus == NetworkStatus.AVAILABLE
@@ -35,6 +36,7 @@ sealed interface HomeEvent : UiEvent {
     data object SyncNowClicked : HomeEvent
     data object OpenVisits : HomeEvent
     data object AddVisit : HomeEvent
+    data object OpenReports : HomeEvent
 }
 
 sealed interface HomeEffect : UiEffect {
@@ -44,4 +46,5 @@ sealed interface HomeEffect : UiEffect {
     data class ShowMessage(val message: String) : HomeEffect
     data object NavigateToVisits : HomeEffect
     data object NavigateToAddVisit : HomeEffect
+    data object NavigateToReports : HomeEffect
 }

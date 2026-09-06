@@ -134,6 +134,43 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Report metadata. The files themselves live in Cloud Storage under
+      // users/{userId}/patients/{patientId}/reports/{reportId} and are governed
+      // by firebase/storage.rules - both files must be deployed together.
+      match /reports/{reportId} {
+        allow read: if isOwner(userId);
+
+        // The 2 MB rule is checked here as well as on the object itself. The
+        // Storage rule stops the bytes; this one stops a document that claims
+        // a size the app would then trust when deciding what to fetch.
+        allow create: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.reportId == reportId
+                      && request.resource.data.patientId is string
+                      && request.resource.data.visitId is string
+                      && request.resource.data.fileName is string
+                      && request.resource.data.fileType in ['PDF', 'IMAGE']
+                      && request.resource.data.fileSizeBytes is int
+                      && request.resource.data.fileSizeBytes <= 2 * 1024 * 1024
+                      && hasConsent(userId);
+
+        // The upload worker patches in the storage URL after the bytes land, so
+        // update has to stay open - but not to reattributing the file. Moving a
+        // report to another patient or visit would silently refile someone
+        // else's scan into this patient's history.
+        allow update: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.reportId == resource.data.reportId
+                      && request.resource.data.patientId == resource.data.patientId
+                      && request.resource.data.visitId == resource.data.visitId
+                      && request.resource.data.fileSizeBytes is int
+                      && request.resource.data.fileSizeBytes <= 2 * 1024 * 1024
+                      && hasConsent(userId);
+
+        // Soft delete only, so the removal syncs and the grace period holds.
+        allow delete: if false;
+      }
+
       // The audit trail (spec 4.9, 9.5). Its whole value rests on being
       // append-only: a client that could edit or delete entries could erase the
       // record of whatever it did. Create is the only write ever permitted, and

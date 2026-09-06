@@ -8,6 +8,7 @@ import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
 import com.ss.medrecord.data.local.dao.FacilityDao
 import com.ss.medrecord.data.local.dao.PatientDao
+import com.ss.medrecord.data.local.dao.ReportDao
 import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.dao.VisitDao
 import com.ss.medrecord.data.local.migration.Migrations
@@ -84,4 +85,7 @@ object DatabaseModule {
 
     @Provides
     fun provideVisitDao(database: MedRecordDatabase): VisitDao = database.visitDao()
+
+    @Provides
+    fun provideReportDao(database: MedRecordDatabase): ReportDao = database.reportDao()
 }

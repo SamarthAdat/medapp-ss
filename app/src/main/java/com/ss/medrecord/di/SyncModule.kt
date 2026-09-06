@@ -7,6 +7,7 @@ import com.ss.medrecord.data.sync.AuditSyncer
 import com.ss.medrecord.data.sync.ConsentSyncer
 import com.ss.medrecord.data.sync.FacilitySyncer
 import com.ss.medrecord.data.sync.PatientSyncer
+import com.ss.medrecord.data.sync.ReportSyncer
 import com.ss.medrecord.data.sync.UserSyncer
 import com.ss.medrecord.data.sync.VisitSyncer
 import com.ss.medrecord.domain.audit.AuditLogger
@@ -48,6 +49,10 @@ abstract class SyncBindingsModule {
     @Binds
     @IntoSet
     abstract fun bindVisitSyncer(impl: VisitSyncer): EntitySyncer
+
+    @Binds
+    @IntoSet
+    abstract fun bindReportSyncer(impl: ReportSyncer): EntitySyncer
 
     @Binds
     @IntoSet

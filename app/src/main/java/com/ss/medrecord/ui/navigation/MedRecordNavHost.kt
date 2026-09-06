@@ -20,6 +20,8 @@ import com.ss.medrecord.ui.feature.consent.ConsentRoute
 import com.ss.medrecord.ui.feature.home.HomeRoute
 import com.ss.medrecord.ui.feature.patient.edit.PatientEditRoute
 import com.ss.medrecord.ui.feature.patient.list.PatientListRoute
+import com.ss.medrecord.ui.feature.report.list.ReportListRoute
+import com.ss.medrecord.ui.feature.report.viewer.ReportViewerRoute
 import com.ss.medrecord.ui.feature.settings.SettingsRoute
 import com.ss.medrecord.ui.feature.visit.detail.VisitDetailRoute
 import com.ss.medrecord.ui.feature.visit.edit.VisitEditRoute
@@ -110,6 +112,7 @@ fun MedRecordNavHost(
                     },
                     onNavigateToVisits = { navController.navigate(VisitListDestination) },
                     onNavigateToAddVisit = { navController.navigate(VisitEditDestination()) },
+                    onNavigateToReports = { navController.navigate(ReportListDestination) },
                 )
             }
             composable<PatientListDestination> {
@@ -143,7 +146,17 @@ fun MedRecordNavHost(
                 VisitDetailRoute(
                     onNavigateBack = { navController.popBackStack() },
                     onEdit = { navController.navigate(VisitEditDestination(it)) },
+                    onOpenReport = { navController.navigate(ReportViewerDestination(it)) },
                 )
+            }
+            composable<ReportListDestination> {
+                ReportListRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToViewer = { navController.navigate(ReportViewerDestination(it)) },
+                )
+            }
+            composable<ReportViewerDestination> {
+                ReportViewerRoute(onNavigateBack = { navController.popBackStack() })
             }
         }
     }

@@ -3,6 +3,8 @@ package com.ss.medrecord.data.repository
 import com.ss.medrecord.core.common.AppError
 import com.ss.medrecord.core.common.DataResult
 import com.ss.medrecord.core.common.DispatcherProvider
+import com.ss.medrecord.core.file.CameraCaptureStore
+import com.ss.medrecord.core.file.EncryptedFileStore
 import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.datastore.ActivePatientStore
@@ -29,6 +31,8 @@ class AuthRepositoryImpl @Inject constructor(
     private val userDao: UserDao,
     private val auditLogDao: AuditLogDao,
     private val activePatientStore: ActivePatientStore,
+    private val fileStore: EncryptedFileStore,
+    private val cameraCaptureStore: CameraCaptureStore,
     private val dispatchers: DispatcherProvider,
 ) : AuthRepository {
 
@@ -96,6 +100,12 @@ class AuthRepositoryImpl @Inject constructor(
             // outside the database and has to be cleared explicitly.
             userDao.deleteAll()
             activePatientStore.clear()
+            // Report rows cascade away with the user row, but their encrypted
+            // files are on the filesystem and would otherwise outlive the
+            // account. Every one of them is already in Cloud Storage or was
+            // never uploaded from a session that has now ended.
+            fileStore.deleteAll()
+            cameraCaptureStore.clear()
             // Audit entries are evidence, not cache, so only the ones already
             // safe in Firestore are dropped. Unpushed entries stay - they are
             // encrypted at rest, scoped to their own userId by every query, and

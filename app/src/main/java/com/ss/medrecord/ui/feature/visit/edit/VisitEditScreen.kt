@@ -179,7 +179,7 @@ fun VisitEditScreen(
             )
 
             Text(
-                text = "Report attachments and prescribed medicines arrive in Phases 5 and 6.",
+                text = "Save the visit first, then attach reports to it from the visit record. Prescribed medicines arrive in Phase 6.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -31,6 +31,21 @@
         </activity>
 
         <!--
+          Hands the camera app a writable Uri for one capture, scoped to a
+          single cache directory (see res/xml/file_paths.xml). Not exported, and
+          permission is granted per-Uri by the capture intent.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
           WorkManager is initialised on demand from MedRecordApplication so that
           Hilt can supply dependencies to the Phase 3 sync workers.
         -->

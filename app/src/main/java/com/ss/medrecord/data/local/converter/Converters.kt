@@ -5,7 +5,9 @@ import com.ss.medrecord.domain.model.BloodGroup
 import com.ss.medrecord.domain.model.ConsentType
 import com.ss.medrecord.domain.model.Gender
 import com.ss.medrecord.domain.model.Relationship
+import com.ss.medrecord.domain.model.ReportFileType
 import com.ss.medrecord.domain.model.SyncStatus
+import com.ss.medrecord.domain.model.UploadStatus
 
 /**
  * Enums are persisted by name rather than ordinal so that reordering or
@@ -51,4 +53,23 @@ class Converters {
     @TypeConverter
     fun stringToBloodGroup(value: String?): BloodGroup? =
         value?.let { runCatching { BloodGroup.valueOf(it) }.getOrNull() }
+
+    @TypeConverter
+    fun reportFileTypeToString(value: ReportFileType): String = value.name
+
+    /**
+     * A file type the reader does not recognise degrades to PDF rather than
+     * throwing: the row is still worth listing, and every unknown value would
+     * have come from a build that could store types this one cannot render.
+     */
+    @TypeConverter
+    fun stringToReportFileType(value: String): ReportFileType =
+        runCatching { ReportFileType.valueOf(value) }.getOrDefault(ReportFileType.PDF)
+
+    @TypeConverter
+    fun uploadStatusToString(value: UploadStatus): String = value.name
+
+    @TypeConverter
+    fun stringToUploadStatus(value: String): UploadStatus =
+        runCatching { UploadStatus.valueOf(value) }.getOrDefault(UploadStatus.PENDING)
 }

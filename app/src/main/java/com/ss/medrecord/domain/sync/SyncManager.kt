@@ -15,10 +15,12 @@ import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
 import com.ss.medrecord.data.local.dao.FacilityDao
 import com.ss.medrecord.data.local.dao.PatientDao
+import com.ss.medrecord.data.local.dao.ReportDao
 import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.dao.VisitDao
 import com.ss.medrecord.data.sync.SyncStateHolder
 import com.ss.medrecord.data.sync.SyncWorker
+import com.ss.medrecord.data.upload.UploadScheduler
 import com.ss.medrecord.di.ApplicationScope
 import com.ss.medrecord.domain.model.AuthSession
 import com.ss.medrecord.domain.session.SessionManager
@@ -50,12 +52,14 @@ class SyncManager @Inject constructor(
     private val sessionManager: SessionManager,
     private val connectivityObserver: ConnectivityObserver,
     private val syncStateHolder: SyncStateHolder,
+    private val uploadScheduler: UploadScheduler,
     userDao: UserDao,
     consentDao: ConsentDao,
     patientDao: PatientDao,
     auditLogDao: AuditLogDao,
     facilityDao: FacilityDao,
     visitDao: VisitDao,
+    reportDao: ReportDao,
     @param:ApplicationScope private val scope: CoroutineScope,
 ) {
 
@@ -67,6 +71,7 @@ class SyncManager @Inject constructor(
         auditLogDao.observePendingCount(),
         facilityDao.observePendingCount(),
         visitDao.observePendingCount(),
+        reportDao.observePendingCount(),
     ) { counts -> counts.sum() }
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, 0)
@@ -74,6 +79,7 @@ class SyncManager @Inject constructor(
     val conflictCount: StateFlow<Int> = combine(
         patientDao.observeConflictCount(),
         visitDao.observeConflictCount(),
+        reportDao.observeConflictCount(),
     ) { counts -> counts.sum() }
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, 0)
@@ -120,6 +126,12 @@ class SyncManager @Inject constructor(
     /** Called when the app comes to the foreground, and by "Sync now". */
     fun syncNow(expedited: Boolean = false) {
         if (sessionManager.session.value !is AuthSession.Authenticated) return
+
+        // Report files ride the same triggers as metadata but in their own
+        // worker, so a queued 2 MB upload cannot delay the audit trail and a
+        // report added offline goes out on the same reconnect that drains
+        // everything else.
+        uploadScheduler.enqueue()
 
         val request = OneTimeWorkRequestBuilder<SyncWorker>()
             .setConstraints(networkConstraints())

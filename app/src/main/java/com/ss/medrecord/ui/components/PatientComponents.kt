@@ -25,7 +25,8 @@ import com.ss.medrecord.ui.theme.MedRecordTheme
 import kotlin.math.absoluteValue
 
 /**
- * Initials avatar. Photo avatars arrive with the file pipeline in Phase 5; the
+ * Initials avatar. Patient profiles carry no photo yet - the file pipeline
+ * built in Phase 5 handles report attachments, not avatars; the
  * colour is derived from the patient id so a given profile always looks the
  * same, which makes the switcher scannable without reading names.
  */

@@ -22,17 +22,18 @@ is committed.
 | 2 | Patient management, active-patient context | Done |
 | 3 | Sync engine, outbox, audit logging | Done |
 | 4 | Facilities and visit records | Done |
-| 5 | Reports and the file pipeline (2 MB cap) | Next — needs Blaze |
+| 5 | Reports and the file pipeline (2 MB cap) | Done |
 | 6 | Medicines, reminders, notifications | Planned |
 | 7 | Dashboard and aggregated views | Planned |
 | 8 | Maps and nearby facilities | Planned |
 | 9 | Settings and compliance hardening | Planned |
 | 10 | Polish, QA, release | Planned |
 
-Phase 5 is blocked on upgrading the Firebase project to the Blaze plan: Cloud
-Storage buckets require it on projects created after late 2024. Blaze includes
-the same free quotas as Spark, so development volume should cost nothing — it
-just needs a billing account attached.
+Phase 5 needs the Firebase project on the Blaze plan, because Cloud Storage
+buckets require it on projects created after late 2024, and it needs the default
+Storage bucket provisioned (Firebase console → Storage → Get started). Blaze
+includes the same free quotas as Spark, so development volume costs nothing.
+Until the bucket exists, report files queue locally exactly as they do offline.
 
 ## Architecture
 
@@ -66,6 +67,14 @@ rules read the user document for a consent version; audit entries last, so an
 entry follows the record it describes. Three triggers: periodic, on reconnect,
 and on app foreground.
 
+**Report files** travel separately from their records, because they fail
+separately. The metadata row syncs through the ordinary outbox; the bytes are
+encrypted on the device and sent by their own worker under its own constraints,
+so a stalled 2 MB upload never holds up the audit trail and a failed upload
+never delays the record of what was attached. An interrupted upload resumes by
+construction rather than by bookkeeping: the encrypted local copy *is* the
+queue, and a row only leaves the queue once its bytes are acknowledged.
+
 **Conflicts** are detected, not guessed at. An unpushed local edit that the
 server has moved past is flagged `CONFLICT` and left untouched for the Phase 9
 resolution screen. Everything else is last-write-wins on `updatedAt`.
@@ -75,6 +84,13 @@ entirely by `AuthSession`. An account with missing or stale consent resolves to
 `PendingConsent`, and the navigation graph has no path from there into any data
 screen — so consent-before-processing is structural, not a check a future screen
 can forget.
+
+**Parent rows are updated, never replaced.** Room's `@Insert(REPLACE)` is a
+delete followed by an insert, and the delete fires `ON DELETE CASCADE` - so
+re-applying a patient during an ordinary sync silently destroyed every visit and
+report beneath it, including records that had never reached Firestore and so
+could not be pulled back. Every upsert uses Room's `@Upsert`, which updates in
+place. `CascadeSafetyTest` pins this.
 
 **Dates** that name a calendar day — date of birth, visit date, next visit — are
 stored as epoch days rather than timestamps. A birth date has no time or zone,
@@ -87,6 +103,26 @@ library desugaring is enabled so `java.time` is available at minSdk 24.
   once and sealed with a hardware-backed AES-GCM key in the Android Keystore;
   only the wrapped blob is stored. Verified after each phase: the database file
   and its WAL contain no plaintext names, clinical fields, or even table names.
+- Report files are encrypted the same way, with a per-file random key sealed by
+  a Keystore key. Envelope encryption rather than encrypting the file directly:
+  a Keystore cipher streams every byte across a Binder boundary, which is slow
+  at 2 MB and crashed the process outright on a real device. The Keystore key
+  only ever sees 32 bytes.
+- Plaintext report bytes stay in memory. Uploads and downloads pass byte arrays
+  rather than file handles, and the one API that insists on a real file - the
+  PDF renderer, which seeks - gets a file that is unlinked the instant it is
+  opened, so the decrypted document exists under a name for a few milliseconds
+  and is reclaimed even if the process dies mid-render.
+- The 2 MB cap is enforced twice: in the app, where it can explain itself and
+  offer compression, and in the Storage rules, where it actually holds. Images
+  over the cap are recompressed; PDFs are refused rather than rasterised, since
+  silently turning a lab result into a JPEG of a lab result is worse than saying
+  no. Rules live in `firebase/storage.rules`.
+- File pickers are system pickers. The app never requests READ_MEDIA_IMAGES or
+  CAMERA: the user chooses one file and the app receives a grant for that file
+  alone, so an app holding medical records never gains standing access to the
+  photo library or the camera. Reports are viewed in-app rather than handed to
+  another viewer through a share intent.
 - Firestore's own disk cache is disabled in favour of a memory-only cache. That
   cache is unencrypted SQLite, so leaving it on would put patient data on disk
   in the clear. The encrypted Room database is the only durable local store.
@@ -122,23 +158,28 @@ configuration and is gitignored. To build:
    (Mumbai) region; this cannot be changed after creation.
 2. Register an Android app with the package name `com.ss.medrecord` and download
    `google-services.json` into `app/`.
-3. Deploy the security rules:
+3. Provision Cloud Storage (Firebase console → Storage → Get started). This
+   needs the Blaze plan; see Status above.
+4. Deploy the security rules. Both files are one unit - a report is a Firestore
+   document plus a Storage object, and deploying one without the other leaves
+   the other half unreachable or unwritable:
    ```
    firebase login
-   firebase deploy --only firestore:rules
+   firebase deploy --only firestore:rules,storage
    ```
-4. Build and install:
+5. Build and install:
    ```
    ./gradlew :app:installDebug
    ```
 
-Run the tests with `./gradlew :app:testDebugUnitTest`.
+Run the tests with `./gradlew :app:testDebugUnitTest`. The cascade and migration
+guards need a device or emulator: `./gradlew :app:connectedDebugAndroidTest`.
 
 **Redeploy the rules whenever a phase adds a collection.** Until they are
 published, writes to the new collection are rejected and queue locally. Nothing
 is lost, but nothing reaches Firestore either — and the app looks like it is
-working, because that is exactly how it is designed to behave offline. Phases 5
-and 6 each add collections; 7 and 8 do not.
+working, because that is exactly how it is designed to behave offline. Phase 6
+adds a collection; 7 and 8 do not.
 
 Google Maps and Places API keys are needed from Phase 8. Keep the key out of
 version control and restrict it to the app's package name and signing
@@ -157,6 +198,7 @@ the source of truth for anything not yet synced.
 | 2 | `patients` |
 | 3 | `audit_logs` |
 | 4 | `facilities`, `visits` |
+| 5 | `reports` |
 
 ## Compliance note
 

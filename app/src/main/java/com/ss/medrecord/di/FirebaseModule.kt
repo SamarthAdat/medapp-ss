@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.MemoryCacheSettings
+import com.google.firebase.storage.FirebaseStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,4 +36,23 @@ object FirebaseModule {
             .setLocalCacheSettings(MemoryCacheSettings.newBuilder().build())
             .build()
     }
+
+    /**
+     * Cloud Storage for report files (spec section 6.2).
+     *
+     * The SDK's own retry windows are shortened from the ten-minute default:
+     * uploads run inside a WorkManager job that already retries with backoff and
+     * network constraints, so an attempt that is not going to succeed should
+     * fail fast and hand the decision back to the worker rather than holding a
+     * job open for ten minutes on a dead connection.
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance().apply {
+        maxUploadRetryTimeMillis = TRANSFER_RETRY_MILLIS
+        maxDownloadRetryTimeMillis = TRANSFER_RETRY_MILLIS
+        maxOperationRetryTimeMillis = TRANSFER_RETRY_MILLIS
+    }
+
+    private const val TRANSFER_RETRY_MILLIS = 60_000L
 }

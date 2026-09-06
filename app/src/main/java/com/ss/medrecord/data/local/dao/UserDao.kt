@@ -2,8 +2,8 @@ package com.ss.medrecord.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.ss.medrecord.data.local.entity.UserEntity
 import com.ss.medrecord.domain.model.SyncStatus
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +18,14 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE user_id = :userId")
     suspend fun getUser(userId: String): UserEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    /**
+     * Room's @Upsert, not @Insert(REPLACE). REPLACE is implemented as DELETE
+     * followed by INSERT, and a delete fires ON DELETE CASCADE - so re-applying
+     * a parent row during sync silently destroyed every child row hanging off
+     * it, including records created on this device that had never reached
+     * Firestore. @Upsert updates the row in place and nothing cascades.
+     */
+    @Upsert
     suspend fun upsert(user: UserEntity)
 
     @Query(

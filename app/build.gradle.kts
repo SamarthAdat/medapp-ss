@@ -110,6 +110,12 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+
+    // Files: EXIF orientation, so a photographed report is not shown sideways.
+    // PDF rendering and image decoding both use platform APIs, so no image
+    // loading or PDF library is pulled in for them.
+    implementation(libs.androidx.exifinterface)
 
     // Background work
     implementation(libs.androidx.work.runtime.ktx)
@@ -130,6 +136,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

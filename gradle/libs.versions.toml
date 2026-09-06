@@ -33,8 +33,7 @@ firebaseBom = "34.18.0"
 googleServices = "4.5.0"
 
 # --- Media / files (wired in Phase 5) -------------------------------------
-coil = "3.6.1"
-pdfbox = "2.0.27.0"
+exifinterface = "1.4.1"
 
 # --- Maps (wired in Phase 8) ----------------------------------------------
 playServicesMaps = "20.0.0"
@@ -105,8 +104,7 @@ firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 
 # Media / files (Phase 5+)
-coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
-pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfbox" }
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
 # Maps (Phase 8+)
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
