@@ -105,3 +105,11 @@ data class MedicineEditDestination(
  */
 @Serializable
 data object TimelineDestination
+
+// --- Maps and nearby facilities (Phase 8) ---------------------------------
+
+@Serializable
+data class FacilityDetailDestination(val facilityId: String)
+
+@Serializable
+data object NearbyFacilitiesDestination

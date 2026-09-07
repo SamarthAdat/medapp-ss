@@ -52,6 +52,7 @@ sealed interface HomeEvent : UiEvent {
     data object OpenReports : HomeEvent
     data object OpenMedicines : HomeEvent
     data object OpenTimeline : HomeEvent
+    data object OpenFacilities : HomeEvent
     data class ActivityClicked(val entry: TimelineEntry) : HomeEvent
     data class AppointmentClicked(val visitId: String) : HomeEvent
 }
@@ -66,6 +67,7 @@ sealed interface HomeEffect : UiEffect {
     data object NavigateToReports : HomeEffect
     data object NavigateToMedicines : HomeEffect
     data object NavigateToTimeline : HomeEffect
+    data object NavigateToFacilities : HomeEffect
     data class NavigateToVisit(val visitId: String) : HomeEffect
     data class NavigateToReport(val reportId: String) : HomeEffect
     data class NavigateToMedicine(val medicineId: String) : HomeEffect

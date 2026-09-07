@@ -25,7 +25,7 @@ is committed.
 | 5 | Reports and the file pipeline (2 MB cap) | Done |
 | 6 | Medicines, reminders, notifications | Done |
 | 7 | Dashboard and aggregated views | Done |
-| 8 | Maps and nearby facilities | Planned |
+| 8 | Maps and nearby facilities | Done |
 | 9 | Settings and compliance hardening | Planned |
 | 10 | Polish, QA, release | Planned |
 
@@ -57,6 +57,19 @@ in Room first and are pushed to Firestore best-effort; a failed push leaves the
 row `PENDING` for the sync worker to retry. This holds for server rejections as
 well as lost connectivity — a record refused by the security rules is queued and
 retried, not lost, and the user sees no error.
+
+**Location is used and never kept.** The nearby search asks for coarse location
+only, uses it as a search radius, and never writes it anywhere - not to Room,
+not to Firestore, not to the audit trail, not even to a field. Where someone is
+at a given moment is inferable health data in an app like this, and the only
+defensible way to hold it is not to. The Places SDK declares
+`ACCESS_FINE_LOCATION` and `ACCESS_WIFI_STATE` in its own manifest; both are
+removed with `tools:node="remove"` so the merged manifest matches that promise
+rather than advertising permissions the app never asks for.
+
+Nearby search is also the one screen with no offline story, and it says so.
+Everything else works with no network; a user who has learnt that would
+otherwise read "no results" as "there are no clinics near me".
 
 **Aggregates are computed once, not per section.** The dashboard and the
 timeline observe the whole account and scope in memory rather than issuing a
@@ -214,9 +227,18 @@ user-revocable from API 31, and without it alarms are set inexact but
 doze-tolerant, so a dose reminder arrives late rather than never. The medicines
 screen says which of the two is missing and links to the place to grant it.
 
-Google Maps and Places API keys are needed from Phase 8. Keep the key out of
-version control and restrict it to the app's package name and signing
-certificate in the Cloud console.
+A Google Maps API key is needed from Phase 8. Copy `secrets.properties.template`
+to `secrets.properties` (gitignored) and set `MAPS_API_KEY`. Enable the **Maps
+SDK for Android** and the **Places API** on the key, and restrict it in the
+Cloud console to the package name `com.ss.medrecord` plus the SHA-1 of each
+signing certificate (`./gradlew :app:signingReport`); debug and release are
+different certs and both need adding. The key is embedded in the APK and is
+extractable - that is unavoidable for an Android Maps key, which is why the
+protection is console-side restriction rather than secrecy.
+
+Leaving the key blank is safe: everything builds and runs, and the map and
+nearby search report themselves unavailable instead of showing a grey
+rectangle.
 
 ## Database
 

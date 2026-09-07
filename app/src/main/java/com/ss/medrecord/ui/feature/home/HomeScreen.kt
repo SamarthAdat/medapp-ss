@@ -64,6 +64,7 @@ fun HomeRoute(
     onNavigateToReports: () -> Unit,
     onNavigateToMedicines: () -> Unit,
     onNavigateToTimeline: () -> Unit,
+    onNavigateToFacilities: () -> Unit,
     onOpenVisit: (String) -> Unit,
     onOpenReport: (String) -> Unit,
     onOpenMedicine: (String) -> Unit,
@@ -83,6 +84,7 @@ fun HomeRoute(
                 HomeEffect.NavigateToReports -> onNavigateToReports()
                 HomeEffect.NavigateToMedicines -> onNavigateToMedicines()
                 HomeEffect.NavigateToTimeline -> onNavigateToTimeline()
+                HomeEffect.NavigateToFacilities -> onNavigateToFacilities()
                 is HomeEffect.NavigateToVisit -> onOpenVisit(effect.visitId)
                 is HomeEffect.NavigateToReport -> onOpenReport(effect.reportId)
                 is HomeEffect.NavigateToMedicine -> onOpenMedicine(effect.medicineId)
@@ -193,6 +195,15 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(text = "Patients")
+                }
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { onEvent(HomeEvent.OpenFacilities) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = "Clinics and hospitals")
                 }
             }
 

@@ -49,6 +49,7 @@ class HomeViewModel @Inject constructor(
             HomeEvent.OpenReports -> sendEffect(HomeEffect.NavigateToReports)
             HomeEvent.OpenMedicines -> sendEffect(HomeEffect.NavigateToMedicines)
             HomeEvent.OpenTimeline -> sendEffect(HomeEffect.NavigateToTimeline)
+            HomeEvent.OpenFacilities -> sendEffect(HomeEffect.NavigateToFacilities)
             HomeEvent.AddVisit -> sendEffect(HomeEffect.NavigateToAddVisit)
 
             is HomeEvent.ActivityClicked -> sendEffect(event.entry.destinationEffect())

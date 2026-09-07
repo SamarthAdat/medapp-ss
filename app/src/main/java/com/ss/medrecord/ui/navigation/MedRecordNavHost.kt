@@ -17,6 +17,9 @@ import com.ss.medrecord.ui.feature.auth.forgot.ForgotPasswordRoute
 import com.ss.medrecord.ui.feature.auth.login.LoginRoute
 import com.ss.medrecord.ui.feature.auth.signup.SignUpRoute
 import com.ss.medrecord.ui.feature.consent.ConsentRoute
+import com.ss.medrecord.ui.feature.facility.detail.FacilityDetailRoute
+import com.ss.medrecord.ui.feature.facility.list.FacilityListRoute
+import com.ss.medrecord.ui.feature.facility.nearby.NearbyRoute
 import com.ss.medrecord.ui.feature.home.HomeRoute
 import com.ss.medrecord.ui.feature.medicine.edit.MedicineEditRoute
 import com.ss.medrecord.ui.feature.medicine.list.MedicineListRoute
@@ -118,6 +121,9 @@ fun MedRecordNavHost(
                     onNavigateToReports = { navController.navigate(ReportListDestination) },
                     onNavigateToMedicines = { navController.navigate(MedicineListDestination) },
                     onNavigateToTimeline = { navController.navigate(TimelineDestination) },
+                    onNavigateToFacilities = {
+                        navController.navigate(FacilityListDestination)
+                    },
                     onOpenVisit = { navController.navigate(VisitDetailDestination(it)) },
                     onOpenReport = { navController.navigate(ReportViewerDestination(it)) },
                     onOpenMedicine = { medicineId ->
@@ -185,6 +191,36 @@ fun MedRecordNavHost(
             }
             composable<MedicineEditDestination> {
                 MedicineEditRoute(onNavigateBack = { navController.popBackStack() })
+            }
+            composable<FacilityListDestination> {
+                FacilityListRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetail = {
+                        navController.navigate(FacilityDetailDestination(it))
+                    },
+                    onNavigateToNearby = {
+                        navController.navigate(NearbyFacilitiesDestination)
+                    },
+                )
+            }
+            composable<FacilityDetailDestination> {
+                FacilityDetailRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onOpenVisit = { navController.navigate(VisitDetailDestination(it)) },
+                )
+            }
+            composable<NearbyFacilitiesDestination> {
+                NearbyRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    // Replaces the search screen rather than stacking on it: the
+                    // user has finished searching, and back should return them to
+                    // the facility list, not to the results they just acted on.
+                    onNavigateToFacility = { facilityId ->
+                        navController.navigate(FacilityDetailDestination(facilityId)) {
+                            popUpTo(NearbyFacilitiesDestination) { inclusive = true }
+                        }
+                    },
+                )
             }
             composable<TimelineDestination> {
                 TimelineRoute(

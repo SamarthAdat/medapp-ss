@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +9,20 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
+
+/**
+ * Local secrets, read from the gitignored `secrets.properties` (see
+ * secrets.properties.template).
+ *
+ * A missing file or a blank key is deliberately not an error. The Maps key is
+ * only needed for one screen, and a clean clone - or CI - must still be able to
+ * build and run everything else. The map degrades to a message instead.
+ */
+val secrets = Properties().apply {
+    val file = rootProject.file("secrets.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+val mapsApiKey: String = secrets.getProperty("MAPS_API_KEY").orEmpty().trim()
 
 android {
     namespace = "com.ss.medrecord"
@@ -23,6 +38,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // The Maps SDK reads its key from a manifest meta-data tag; the Places
+        // SDK is initialised in code and needs it as a value. Neither is a
+        // secret once the APK ships - Google's model for Android Maps keys is
+        // Cloud-console restriction by package and signing certificate, not
+        // secrecy - but keeping it out of the repo stops a public clone from
+        // spending someone else's quota.
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
+        // Lets the UI say "maps are not configured" rather than showing a grey
+        // rectangle and leaving the user to guess.
+        buildConfigField("Boolean", "HAS_MAPS_KEY", mapsApiKey.isNotBlank().toString())
     }
 
     buildTypes {
@@ -119,6 +146,14 @@ dependencies {
     // PDF rendering and image decoding both use platform APIs, so no image
     // loading or PDF library is pulled in for them.
     implementation(libs.androidx.exifinterface)
+
+    // Maps, location and place search (Phase 8). maps-compose wraps the Maps
+    // SDK in a real composable rather than an AndroidView holding a MapView
+    // whose lifecycle has to be driven by hand.
+    implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
+    implementation(libs.maps.compose)
+    implementation(libs.places)
 
     // Background work
     implementation(libs.androidx.work.runtime.ktx)
