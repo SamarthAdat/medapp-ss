@@ -7,6 +7,26 @@
     <!-- Drives the offline/online indicator and triggers sync on reconnect. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!--
+      Dose and appointment reminders (Phase 6).
+
+      POST_NOTIFICATIONS is requested at runtime on API 33+. Denying it costs
+      the reminders and nothing else - every record remains usable.
+
+      SCHEDULE_EXACT_ALARM rather than USE_EXACT_ALARM. USE_EXACT_ALARM is
+      granted on install and cannot be revoked, which is the wrong default for
+      an app the user may only want reminders from occasionally; this one is
+      user-revocable, and AlarmScheduler degrades to an inexact doze-tolerant
+      alarm when it is refused, so a dose reminder arrives late rather than
+      never.
+
+      RECEIVE_BOOT_COMPLETED is what makes reminders survive a restart: Android
+      drops every alarm an app has set when the device reboots.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".MedRecordApplication"
         android:allowBackup="false"
@@ -44,6 +64,59 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!--
+          Where an armed alarm lands, and where the "Taken" action lands. Not
+          exported: both intents are created by this app for itself, and an
+          exported receiver would let any app on the device mark a dose taken.
+        -->
+        <receiver
+            android:name=".data.reminder.ReminderReceiver"
+            android:exported="false" />
+
+        <!--
+          Re-arms the alarm chain after the two events that silently drop it.
+          Exported is required here - the system is the sender - but the
+          intent-filter admits only those broadcasts, and both are protected by
+          the system so no other app can forge them.
+        -->
+        <receiver
+            android:name=".data.reminder.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          FCM. Registers this device against the signed-in account so that
+          server-initiated work has somewhere to land; no backend sends to it
+          yet. exported="false" is correct - Play Services binds to it directly
+          rather than broadcasting.
+        -->
+        <service
+            android:name=".data.notification.MedRecordMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!--
+          Firebase falls back to the app icon when this is absent, which renders
+          as a white square in the status bar. The default channel is set to the
+          quiet one so a message that arrives before the app has classified it
+          cannot make noise.
+        -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="medrecord_sync" />
 
         <!--
           WorkManager is initialised on demand from MedRecordApplication so that

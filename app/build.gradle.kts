@@ -111,6 +111,9 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    // Registers this device for server-initiated work (Phase 6). Reminders
+    // themselves are local alarms and do not depend on it.
+    implementation(libs.firebase.messaging)
 
     // Files: EXIF orientation, so a photographed report is not shown sideways.
     // PDF rendering and image decoding both use platform APIs, so no image

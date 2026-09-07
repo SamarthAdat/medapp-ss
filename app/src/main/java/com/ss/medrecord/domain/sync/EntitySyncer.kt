@@ -5,8 +5,8 @@ package com.ss.medrecord.domain.sync
  *
  * The worker knows nothing about patients or consents; it collects every
  * [EntitySyncer] bound into the graph and runs them in order. Adding visits in
- * Phase 4 or reports in Phase 5 means adding a syncer and a binding, not
- * touching the worker.
+ * Phase 4, reports in Phase 5 or medicines in Phase 6 means adding a syncer and
+ * a binding, not touching the worker.
  */
 interface EntitySyncer {
 

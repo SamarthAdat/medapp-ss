@@ -10,10 +10,12 @@ import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.datastore.ActivePatientStore
 import com.ss.medrecord.data.local.entity.toDomain
 import com.ss.medrecord.data.local.entity.toEntity
+import com.ss.medrecord.data.remote.DeviceTokenDataSource
 import com.ss.medrecord.data.remote.FirebaseAuthDataSource
 import com.ss.medrecord.data.remote.UserRemoteDataSource
 import com.ss.medrecord.domain.model.AppUser
 import com.ss.medrecord.domain.model.SyncStatus
+import com.ss.medrecord.domain.reminder.ReminderScheduler
 import com.ss.medrecord.domain.repository.AuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +35,8 @@ class AuthRepositoryImpl @Inject constructor(
     private val activePatientStore: ActivePatientStore,
     private val fileStore: EncryptedFileStore,
     private val cameraCaptureStore: CameraCaptureStore,
+    private val reminderScheduler: ReminderScheduler,
+    private val deviceTokenDataSource: DeviceTokenDataSource,
     private val dispatchers: DispatcherProvider,
 ) : AuthRepository {
 
@@ -93,6 +97,20 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signOut(): DataResult<Unit> = withContext(dispatchers.io) {
         DataResult.catching({ AppError.Unknown(it) }) {
+            // Both of these need the credential that is about to be thrown
+            // away, so they run before the sign-out rather than after it.
+            // The data source rather than PushTokenRegistrar: the registrar
+            // observes SessionManager, which is built on this repository, and
+            // injecting it here would close a dependency cycle. Failure is
+            // ignored - a stale token is a routing nuisance, not a reason to
+            // block someone from signing out.
+            authDataSource.currentUserId?.let { userId ->
+                runCatching { deviceTokenDataSource.unregister(userId) }
+            }
+            // Reminder rows cascade away with the user row below, but the alarm
+            // armed in AlarmManager lives outside the database and would fire
+            // after sign-out, naming a patient nobody is signed in as.
+            reminderScheduler.cancelAll()
             authDataSource.signOut()
             // Local rows are dropped so a different account signing in on this
             // device can never read the previous holder's cached records.

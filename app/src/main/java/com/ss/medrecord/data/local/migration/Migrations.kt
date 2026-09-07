@@ -200,5 +200,93 @@ object Migrations {
         }
     }
 
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+
+    /** Phase 6 adds medicines and the device-local reminder schedule. */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `medicines` (
+                    `medicine_id` TEXT NOT NULL,
+                    `user_id` TEXT NOT NULL,
+                    `patient_id` TEXT NOT NULL,
+                    `visit_id` TEXT,
+                    `name` TEXT NOT NULL,
+                    `dosage` TEXT,
+                    `frequency` TEXT NOT NULL,
+                    `reminder_times` TEXT NOT NULL,
+                    `start_date_epoch_day` INTEGER NOT NULL,
+                    `end_date_epoch_day` INTEGER,
+                    `instructions` TEXT,
+                    `is_active` INTEGER NOT NULL,
+                    `created_at` INTEGER NOT NULL,
+                    `updated_at` INTEGER NOT NULL,
+                    `deleted_at` INTEGER,
+                    `sync_status` TEXT NOT NULL,
+                    PRIMARY KEY(`medicine_id`),
+                    FOREIGN KEY(`patient_id`) REFERENCES `patients`(`patient_id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`visit_id`) REFERENCES `visits`(`visit_id`)
+                        ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_medicines_user_id` ON `medicines` (`user_id`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_medicines_visit_id` ON `medicines` (`visit_id`)",
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_medicines_patient_id_deleted_at_is_active`
+                ON `medicines` (`patient_id`, `deleted_at`, `is_active`)
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `reminders` (
+                    `reminder_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `user_id` TEXT NOT NULL,
+                    `patient_id` TEXT NOT NULL,
+                    `type` TEXT NOT NULL,
+                    `source_id` TEXT NOT NULL,
+                    `trigger_at_millis` INTEGER NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `message` TEXT NOT NULL,
+                    `status` TEXT NOT NULL,
+                    FOREIGN KEY(`patient_id`) REFERENCES `patients`(`patient_id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_reminders_user_id` ON `reminders` (`user_id`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_reminders_patient_id` ON `reminders` (`patient_id`)",
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_reminders_status_trigger_at_millis`
+                ON `reminders` (`status`, `trigger_at_millis`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS `index_reminders_source_id_trigger_at_millis`
+                ON `reminders` (`source_id`, `trigger_at_millis`)
+                """.trimIndent(),
+            )
+        }
+    }
+
+    val ALL = arrayOf(
+        MIGRATION_1_2,
+        MIGRATION_2_3,
+        MIGRATION_3_4,
+        MIGRATION_4_5,
+        MIGRATION_5_6,
+    )
 }

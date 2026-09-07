@@ -43,6 +43,7 @@ fun HomeRoute(
     onNavigateToVisits: () -> Unit,
     onNavigateToAddVisit: () -> Unit,
     onNavigateToReports: () -> Unit,
+    onNavigateToMedicines: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -57,6 +58,7 @@ fun HomeRoute(
                 HomeEffect.NavigateToVisits -> onNavigateToVisits()
                 HomeEffect.NavigateToAddVisit -> onNavigateToAddVisit()
                 HomeEffect.NavigateToReports -> onNavigateToReports()
+                HomeEffect.NavigateToMedicines -> onNavigateToMedicines()
                 is HomeEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -165,11 +167,33 @@ fun HomeScreen(
                     )
                 }
 
-                Text(
-                    text = "Medicine reminders arrive in Phase 6.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                OutlinedButton(
+                    onClick = { onEvent(HomeEvent.OpenMedicines) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = if (state.medicineCount == 0) {
+                            "Medicines"
+                        } else {
+                            "Medicines (${state.medicineCount})"
+                        },
+                    )
+                }
+
+                // Only shown when there is something left to take. A line that
+                // reads "0 doses due" every evening trains the user to stop
+                // reading this part of the screen.
+                if (state.dosesDueToday > 0) {
+                    Text(
+                        text = if (state.dosesDueToday == 1) {
+                            "1 dose still due today"
+                        } else {
+                            "${state.dosesDueToday} doses still due today"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             OutlinedButton(

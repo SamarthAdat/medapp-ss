@@ -18,6 +18,8 @@ import com.ss.medrecord.ui.feature.auth.login.LoginRoute
 import com.ss.medrecord.ui.feature.auth.signup.SignUpRoute
 import com.ss.medrecord.ui.feature.consent.ConsentRoute
 import com.ss.medrecord.ui.feature.home.HomeRoute
+import com.ss.medrecord.ui.feature.medicine.edit.MedicineEditRoute
+import com.ss.medrecord.ui.feature.medicine.list.MedicineListRoute
 import com.ss.medrecord.ui.feature.patient.edit.PatientEditRoute
 import com.ss.medrecord.ui.feature.patient.list.PatientListRoute
 import com.ss.medrecord.ui.feature.report.list.ReportListRoute
@@ -113,6 +115,7 @@ fun MedRecordNavHost(
                     onNavigateToVisits = { navController.navigate(VisitListDestination) },
                     onNavigateToAddVisit = { navController.navigate(VisitEditDestination()) },
                     onNavigateToReports = { navController.navigate(ReportListDestination) },
+                    onNavigateToMedicines = { navController.navigate(MedicineListDestination) },
                 )
             }
             composable<PatientListDestination> {
@@ -147,6 +150,12 @@ fun MedRecordNavHost(
                     onNavigateBack = { navController.popBackStack() },
                     onEdit = { navController.navigate(VisitEditDestination(it)) },
                     onOpenReport = { navController.navigate(ReportViewerDestination(it)) },
+                    onAddMedicine = { visitId ->
+                        navController.navigate(MedicineEditDestination(visitId = visitId))
+                    },
+                    onOpenMedicine = { medicineId ->
+                        navController.navigate(MedicineEditDestination(medicineId = medicineId))
+                    },
                 )
             }
             composable<ReportListDestination> {
@@ -157,6 +166,18 @@ fun MedRecordNavHost(
             }
             composable<ReportViewerDestination> {
                 ReportViewerRoute(onNavigateBack = { navController.popBackStack() })
+            }
+            composable<MedicineListDestination> {
+                MedicineListRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToAdd = { navController.navigate(MedicineEditDestination()) },
+                    onNavigateToEdit = { medicineId ->
+                        navController.navigate(MedicineEditDestination(medicineId = medicineId))
+                    },
+                )
+            }
+            composable<MedicineEditDestination> {
+                MedicineEditRoute(onNavigateBack = { navController.popBackStack() })
             }
         }
     }

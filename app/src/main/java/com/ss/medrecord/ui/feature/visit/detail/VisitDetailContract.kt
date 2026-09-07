@@ -4,6 +4,7 @@ import android.net.Uri
 import com.ss.medrecord.core.ui.UiEffect
 import com.ss.medrecord.core.ui.UiEvent
 import com.ss.medrecord.core.ui.UiState
+import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.Report
 import com.ss.medrecord.domain.model.VisitWithFacility
 
@@ -11,6 +12,7 @@ data class VisitDetailUiState(
     val visit: VisitWithFacility? = null,
     val patientName: String? = null,
     val reports: List<Report> = emptyList(),
+    val medicines: List<Medicine> = emptyList(),
     val isLoading: Boolean = true,
     /** An attach is in flight: reading, compressing and encrypting the file. */
     val isImporting: Boolean = false,
@@ -30,11 +32,17 @@ sealed interface VisitDetailEvent : UiEvent {
 
     /** A system picker could not be launched; see AttachReportSheet. */
     data class PickerUnavailable(val message: String) : VisitDetailEvent
+
+    // Medicines (Phase 6)
+    data object AddMedicineClicked : VisitDetailEvent
+    data class MedicineClicked(val medicine: Medicine) : VisitDetailEvent
 }
 
 sealed interface VisitDetailEffect : UiEffect {
     data object NavigateBack : VisitDetailEffect
     data class NavigateToEdit(val visitId: String) : VisitDetailEffect
     data class NavigateToReport(val reportId: String) : VisitDetailEffect
+    data class NavigateToAddMedicine(val visitId: String) : VisitDetailEffect
+    data class NavigateToMedicine(val medicineId: String) : VisitDetailEffect
     data class ShowMessage(val message: String) : VisitDetailEffect
 }

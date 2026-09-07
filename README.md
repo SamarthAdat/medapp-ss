@@ -23,7 +23,7 @@ is committed.
 | 3 | Sync engine, outbox, audit logging | Done |
 | 4 | Facilities and visit records | Done |
 | 5 | Reports and the file pipeline (2 MB cap) | Done |
-| 6 | Medicines, reminders, notifications | Planned |
+| 6 | Medicines, reminders, notifications | Done |
 | 7 | Dashboard and aggregated views | Planned |
 | 8 | Maps and nearby facilities | Planned |
 | 9 | Settings and compliance hardening | Planned |
@@ -57,6 +57,22 @@ in Room first and are pushed to Firestore best-effort; a failed push leaves the
 row `PENDING` for the sync worker to retry. This holds for server rejections as
 well as lost connectivity — a record refused by the security rules is queued and
 retried, not lost, and the user sees no error.
+
+**Reminders are the one thing that never syncs.** Every other record round-trips
+to Firestore; reminder rows stay on the device that has to ring. They are a
+derivation, not a record — each one is recomputed from a medicine's schedule or
+a visit's next-visit date, both of which do sync — and the alarm has to be armed
+on this device's `AlarmManager` regardless. Syncing them would add an outbox and
+a conflict path for rows the user never edits, and would let a dose reminder
+fail to fire because its row had not arrived yet. The visible consequence is
+that two devices on one account both notify; for medication that is the better
+failure.
+
+One alarm is armed at a time — the next reminder due — and the receiver posts
+everything due at that moment before arming the next. Exact alarms are rationed,
+and a family with several medicines would otherwise hold a hundred of them for a
+week's schedule. A dropped alarm is repaired by the boot receiver and a
+twice-daily sweep, both of which re-arm from the table.
 
 **Sync.** `EntitySyncer` implementations are contributed into a Hilt set, so
 `SyncWorker` knows nothing about any particular record type; adding one is a
@@ -178,8 +194,15 @@ guards need a device or emulator: `./gradlew :app:connectedDebugAndroidTest`.
 **Redeploy the rules whenever a phase adds a collection.** Until they are
 published, writes to the new collection are rejected and queue locally. Nothing
 is lost, but nothing reaches Firestore either — and the app looks like it is
-working, because that is exactly how it is designed to behave offline. Phase 6
-adds a collection; 7 and 8 do not.
+working, because that is exactly how it is designed to behave offline. Phases 5
+and 6 each add collections; 7 and 8 do not.
+
+Reminders need two permissions and degrade rather than fail without either.
+`POST_NOTIFICATIONS` is requested at runtime from the medicines screen; refusing
+it costs the notifications and nothing else. `SCHEDULE_EXACT_ALARM` is
+user-revocable from API 31, and without it alarms are set inexact but
+doze-tolerant, so a dose reminder arrives late rather than never. The medicines
+screen says which of the two is missing and links to the place to grant it.
 
 Google Maps and Places API keys are needed from Phase 8. Keep the key out of
 version control and restrict it to the app's package name and signing
@@ -199,6 +222,7 @@ the source of truth for anything not yet synced.
 | 3 | `audit_logs` |
 | 4 | `facilities`, `visits` |
 | 5 | `reports` |
+| 6 | `medicines`, `reminders` |
 
 ## Compliance note
 

@@ -26,4 +26,16 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    companion object {
+        /**
+         * Which kind of reminder opened the app, set by [ReminderNotifier].
+         *
+         * Carried but not yet routed on: the navigation graph decides where to
+         * put the user from the session, and jumping past that from a
+         * notification could land a signed-out or un-consented user on a data
+         * screen. Phase 7 gives the dashboard somewhere sensible to send them.
+         */
+        const val EXTRA_REMINDER_TYPE = "reminder_type"
+    }
 }

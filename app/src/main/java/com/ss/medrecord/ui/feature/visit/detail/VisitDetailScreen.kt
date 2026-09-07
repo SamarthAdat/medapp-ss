@@ -34,9 +34,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.core.ui.components.FullScreenLoading
 import com.ss.medrecord.domain.model.Facility
 import com.ss.medrecord.domain.model.FacilityType
+import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.Report
 import com.ss.medrecord.domain.model.Visit
 import com.ss.medrecord.domain.model.VisitWithFacility
+import com.ss.medrecord.ui.components.MedicineTile
 import com.ss.medrecord.ui.components.ReportTile
 import com.ss.medrecord.ui.theme.MedRecordTheme
 import java.time.LocalDate
@@ -47,6 +49,8 @@ fun VisitDetailRoute(
     onNavigateBack: () -> Unit,
     onEdit: (String) -> Unit,
     onOpenReport: (String) -> Unit,
+    onAddMedicine: (String) -> Unit,
+    onOpenMedicine: (String) -> Unit,
     viewModel: VisitDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -58,6 +62,8 @@ fun VisitDetailRoute(
                 VisitDetailEffect.NavigateBack -> onNavigateBack()
                 is VisitDetailEffect.NavigateToEdit -> onEdit(effect.visitId)
                 is VisitDetailEffect.NavigateToReport -> onOpenReport(effect.reportId)
+                is VisitDetailEffect.NavigateToAddMedicine -> onAddMedicine(effect.visitId)
+                is VisitDetailEffect.NavigateToMedicine -> onOpenMedicine(effect.medicineId)
                 is VisitDetailEffect.ShowMessage -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -211,12 +217,7 @@ fun VisitDetailScreen(
                     loadThumbnail = loadThumbnail,
                 )
 
-                Text(
-                    text = "Prescribed medicines appear here from Phase 6.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
+                MedicinesSection(medicines = state.medicines, onEvent = onEvent)
 
                 OutlinedButton(
                     onClick = { onEvent(VisitDetailEvent.EditClicked) },
@@ -290,6 +291,64 @@ private fun ReportsSection(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Medicines prescribed at this visit (spec section 5.6).
+ *
+ * Only the ones linked to this appointment. A patient's full list lives on the
+ * medicines screen; repeating it here would make an unrelated long-term
+ * prescription look like something this doctor started.
+ */
+@Composable
+private fun MedicinesSection(
+    medicines: List<Medicine>,
+    onEvent: (VisitDetailEvent) -> Unit,
+) {
+    Column(modifier = Modifier.padding(top = 12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (medicines.isEmpty()) {
+                    "Medicines"
+                } else {
+                    "Medicines (${medicines.size})"
+                },
+                style = MaterialTheme.typography.titleMedium,
+            )
+            TextButton(onClick = { onEvent(VisitDetailEvent.AddMedicineClicked) }) {
+                Text(text = "Add")
+            }
+        }
+
+        if (medicines.isEmpty()) {
+            Text(
+                text = "Anything prescribed at this visit can be added here and " +
+                    "reminded about.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            return@Column
+        }
+
+        medicines.forEach { medicine ->
+            MedicineTile(
+                medicine = medicine,
+                subtitle = null,
+                onClick = { onEvent(VisitDetailEvent.MedicineClicked(medicine)) },
+                // The toggle is deliberately inert here: pausing a course is a
+                // decision about the medicine, not about this visit record, and
+                // it belongs on the screen that shows the whole schedule.
+                onToggleActive = { onEvent(VisitDetailEvent.MedicineClicked(medicine)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+            )
         }
     }
 }

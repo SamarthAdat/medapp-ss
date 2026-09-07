@@ -1,0 +1,25 @@
+<!--
+  The status-bar icon.
+
+  Android masks a notification icon to its alpha channel and paints it in the
+  system's own colour, so this is deliberately a flat white silhouette on
+  transparency. Anything with colour or interior detail renders as a solid
+  white blob.
+
+  A pill rather than a cross or a caduceus: it reads at 24dp, and it says
+  "reminder" without announcing "medical records" to whoever is looking at the
+  status bar over the user's shoulder.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFFFF">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4.22,11.29l7.07,-7.07a5,5 0,0 1,7.07 7.07l-7.07,7.07a5,5 0,0 1,-7.07 -7.07zM12.71,5.64l-7.07,7.07a3,3 0,0 0,4.24 4.24l7.07,-7.07a3,3 0,0 0,-4.24 -4.24z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8.05,9.34l6.6,6.6 -1.41,1.42 -6.6,-6.6z" />
+</vector>

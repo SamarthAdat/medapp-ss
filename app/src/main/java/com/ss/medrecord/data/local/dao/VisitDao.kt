@@ -92,6 +92,28 @@ interface VisitDao {
     fun observeVisitCount(patientId: String): Flow<Int>
 
     /**
+     * Visits with a follow-up falling inside the reminder horizon (spec 4.6).
+     * Bounded at both ends: a next-visit date already in the past is a missed
+     * appointment, not something to remind about, and one years out does not
+     * need an alarm armed today.
+     */
+    @Query(
+        """
+        SELECT * FROM visits
+        WHERE user_id = :userId
+          AND deleted_at IS NULL
+          AND next_visit_date_epoch_day IS NOT NULL
+          AND next_visit_date_epoch_day BETWEEN :fromEpochDay AND :toEpochDay
+        ORDER BY next_visit_date_epoch_day ASC
+        """,
+    )
+    suspend fun getUpcomingFollowUps(
+        userId: String,
+        fromEpochDay: Long,
+        toEpochDay: Long,
+    ): List<VisitEntity>
+
+    /**
      * Room's @Upsert, not @Insert(REPLACE). REPLACE is implemented as DELETE
      * followed by INSERT, and a delete fires ON DELETE CASCADE - so re-applying
      * a parent row during sync silently destroyed every child row hanging off

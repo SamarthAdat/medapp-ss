@@ -3,8 +3,8 @@ rules_version = '2';
 // Firestore security rules, v1 (spec section 9.1).
 //
 // Phase 1 covers the account holder document and its consent ledger. Patient,
-// visit, report and audit collections are added in their own phases; anything
-// not matched here is denied by the final catch-all.
+// visit, report, medicine, device and audit collections are added in their own
+// phases; anything not matched here is denied by the final catch-all.
 //
 // Deploy with:  firebase deploy --only firestore:rules
 service cloud.firestore {
@@ -169,6 +169,52 @@ service cloud.firestore {
 
         // Soft delete only, so the removal syncs and the grace period holds.
         allow delete: if false;
+      }
+
+      // Prescribed medicines. Carries both userId and patientId like a visit,
+      // for the same reason: moving one to another patient would reattribute a
+      // prescription, so patientId is immutable after creation.
+      //
+      // Reminders are deliberately absent from these rules and from Firestore
+      // entirely - they are derived from this collection and stay on the device
+      // that has to ring. See the Reminder model for the reasoning.
+      match /medicines/{medicineId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.medicineId == medicineId
+                      && request.resource.data.patientId is string
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() > 0
+                      && request.resource.data.frequency in
+                         ['DAILY', 'ALTERNATE_DAYS', 'WEEKLY', 'AS_NEEDED']
+                      && request.resource.data.startDateEpochDay is int
+                      && hasConsent(userId);
+
+        allow update: if isOwner(userId)
+                      && payloadBelongsTo(userId)
+                      && request.resource.data.medicineId == resource.data.medicineId
+                      && request.resource.data.patientId == resource.data.patientId
+                      && hasConsent(userId);
+
+        // Soft delete only, so the removal syncs and the grace period holds.
+        allow delete: if false;
+      }
+
+      // Push registration tokens, one document per install (Phase 6).
+      //
+      // Delete is allowed here, unlike everywhere else in these rules. A token
+      // is not a record - it is a routing entry for a device, and sign-out must
+      // be able to remove it. Nothing clinical is stored alongside it.
+      match /devices/{deviceId} {
+        allow read, delete: if isOwner(userId);
+
+        allow create, update: if isOwner(userId)
+                              && payloadBelongsTo(userId)
+                              && request.resource.data.token is string
+                              && request.resource.data.token.size() > 0
+                              && request.resource.data.platform is string;
       }
 
       // The audit trail (spec 4.9, 9.5). Its whole value rests on being

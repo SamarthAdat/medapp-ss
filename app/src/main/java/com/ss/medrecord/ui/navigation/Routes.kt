@@ -77,3 +77,21 @@ data object ReportListDestination
 
 @Serializable
 data class ReportViewerDestination(val reportId: String)
+
+// --- Medicines and reminders (Phase 6) ------------------------------------
+
+@Serializable
+data object MedicineListDestination
+
+/**
+ * A null medicineId means "add"; a present one means "edit".
+ *
+ * visitId is only ever set when adding from a visit record, so the new medicine
+ * arrives already linked to the appointment that prescribed it. It is ignored
+ * when editing, where the medicine already knows its own visit.
+ */
+@Serializable
+data class MedicineEditDestination(
+    val medicineId: String? = null,
+    val visitId: String? = null,
+)

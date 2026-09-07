@@ -3,9 +3,13 @@ package com.ss.medrecord.ui.feature.home
 import androidx.lifecycle.viewModelScope
 import com.ss.medrecord.core.connectivity.ConnectivityObserver
 import com.ss.medrecord.core.ui.BaseViewModel
+import com.ss.medrecord.domain.model.AuthSession
+import com.ss.medrecord.domain.repository.MedicineRepository
+import com.ss.medrecord.domain.repository.ReminderRepository
 import com.ss.medrecord.domain.repository.ReportRepository
 import com.ss.medrecord.domain.repository.VisitRepository
 import com.ss.medrecord.domain.session.ActivePatientManager
+import com.ss.medrecord.domain.session.SessionManager
 import com.ss.medrecord.domain.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,6 +28,9 @@ class HomeViewModel @Inject constructor(
     private val syncManager: SyncManager,
     visitRepository: VisitRepository,
     reportRepository: ReportRepository,
+    medicineRepository: MedicineRepository,
+    reminderRepository: ReminderRepository,
+    sessionManager: SessionManager,
 ) : BaseViewModel<HomeUiState, HomeEvent, HomeEffect>(
     initialState = HomeUiState(networkStatus = connectivityObserver.currentStatus()),
 ) {
@@ -63,6 +70,34 @@ class HomeViewModel @Inject constructor(
             }
             .onEach { count -> setState { copy(reportCount = count) } }
             .launchIn(viewModelScope)
+
+        activePatientManager.activePatient
+            .flatMapLatest { patient ->
+                if (patient == null) {
+                    flowOf(0)
+                } else {
+                    medicineRepository.observeActiveCountForPatient(patient.patientId)
+                }
+            }
+            .onEach { count -> setState { copy(medicineCount = count) } }
+            .launchIn(viewModelScope)
+
+        // Account-wide rather than per-patient: the point of the number is "how
+        // many doses does this household still owe today", and someone giving
+        // a child their medicine should not have to switch profile to see it.
+        sessionManager.session
+            .flatMapLatest { session ->
+                when (session) {
+                    is AuthSession.Authenticated ->
+                        reminderRepository.observeToday(session.userId)
+
+                    else -> flowOf(emptyList())
+                }
+            }
+            .onEach { reminders ->
+                setState { copy(dosesDueToday = reminders.count { it.isPending }) }
+            }
+            .launchIn(viewModelScope)
     }
 
     override fun onEvent(event: HomeEvent) {
@@ -74,6 +109,7 @@ class HomeViewModel @Inject constructor(
             HomeEvent.AddFirstPatient -> sendEffect(HomeEffect.NavigateToAddPatient)
             HomeEvent.OpenVisits -> sendEffect(HomeEffect.NavigateToVisits)
             HomeEvent.OpenReports -> sendEffect(HomeEffect.NavigateToReports)
+            HomeEvent.OpenMedicines -> sendEffect(HomeEffect.NavigateToMedicines)
             HomeEvent.AddVisit -> sendEffect(HomeEffect.NavigateToAddVisit)
 
             HomeEvent.SyncNowClicked -> {

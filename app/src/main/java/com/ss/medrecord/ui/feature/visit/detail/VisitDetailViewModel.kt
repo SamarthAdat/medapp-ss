@@ -12,7 +12,9 @@ import com.ss.medrecord.core.ui.toUserMessage
 import com.ss.medrecord.domain.audit.AuditLogger
 import com.ss.medrecord.domain.model.AuditAction
 import com.ss.medrecord.domain.model.AuditEntityType
+import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.Report
+import com.ss.medrecord.domain.repository.MedicineRepository
 import com.ss.medrecord.domain.repository.PatientRepository
 import com.ss.medrecord.domain.repository.ReportImportResult
 import com.ss.medrecord.domain.repository.ReportRepository
@@ -30,6 +32,7 @@ class VisitDetailViewModel @Inject constructor(
     visitRepository: VisitRepository,
     private val reportRepository: ReportRepository,
     private val patientRepository: PatientRepository,
+    medicineRepository: MedicineRepository,
     private val imageLoader: ReportImageLoader,
     private val cameraCaptureStore: CameraCaptureStore,
     private val auditLogger: AuditLogger,
@@ -48,6 +51,10 @@ class VisitDetailViewModel @Inject constructor(
 
         reportRepository.observeReportsForVisit(route.visitId)
             .onEach { attached -> setState { copy(reports = attached) } }
+            .launchIn(viewModelScope)
+
+        medicineRepository.observeMedicinesForVisit(route.visitId)
+            .onEach { prescribed -> setState { copy(medicines = prescribed) } }
             .launchIn(viewModelScope)
 
         // Opening a record is a VIEW under spec 4.9. Logged once per screen
@@ -95,6 +102,12 @@ class VisitDetailViewModel @Inject constructor(
                 setState { copy(isAttachSheetVisible = false) }
                 sendEffect(VisitDetailEffect.ShowMessage(event.message))
             }
+
+            VisitDetailEvent.AddMedicineClicked ->
+                sendEffect(VisitDetailEffect.NavigateToAddMedicine(route.visitId))
+
+            is VisitDetailEvent.MedicineClicked ->
+                sendEffect(VisitDetailEffect.NavigateToMedicine(event.medicine.medicineId))
         }
     }
 

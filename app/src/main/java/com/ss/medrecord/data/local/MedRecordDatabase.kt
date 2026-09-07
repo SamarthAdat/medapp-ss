@@ -7,14 +7,18 @@ import com.ss.medrecord.data.local.converter.Converters
 import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
 import com.ss.medrecord.data.local.dao.FacilityDao
+import com.ss.medrecord.data.local.dao.MedicineDao
 import com.ss.medrecord.data.local.dao.PatientDao
+import com.ss.medrecord.data.local.dao.ReminderDao
 import com.ss.medrecord.data.local.dao.ReportDao
 import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.dao.VisitDao
 import com.ss.medrecord.data.local.entity.AuditLogEntity
 import com.ss.medrecord.data.local.entity.ConsentEntity
 import com.ss.medrecord.data.local.entity.FacilityEntity
+import com.ss.medrecord.data.local.entity.MedicineEntity
 import com.ss.medrecord.data.local.entity.PatientEntity
+import com.ss.medrecord.data.local.entity.ReminderEntity
 import com.ss.medrecord.data.local.entity.ReportEntity
 import com.ss.medrecord.data.local.entity.UserEntity
 import com.ss.medrecord.data.local.entity.VisitEntity
@@ -33,6 +37,7 @@ import com.ss.medrecord.data.local.entity.VisitEntity
  *  3 - audit_logs (Phase 3)
  *  4 - facilities, visits (Phase 4)
  *  5 - reports (Phase 5)
+ *  6 - medicines, reminders (Phase 6)
  */
 @Database(
     entities = [
@@ -43,8 +48,10 @@ import com.ss.medrecord.data.local.entity.VisitEntity
         FacilityEntity::class,
         VisitEntity::class,
         ReportEntity::class,
+        MedicineEntity::class,
+        ReminderEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -63,6 +70,10 @@ abstract class MedRecordDatabase : RoomDatabase() {
     abstract fun visitDao(): VisitDao
 
     abstract fun reportDao(): ReportDao
+
+    abstract fun medicineDao(): MedicineDao
+
+    abstract fun reminderDao(): ReminderDao
 
     companion object {
         const val NAME = "medrecord.db"

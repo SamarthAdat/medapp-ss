@@ -4,7 +4,10 @@ import androidx.room.TypeConverter
 import com.ss.medrecord.domain.model.BloodGroup
 import com.ss.medrecord.domain.model.ConsentType
 import com.ss.medrecord.domain.model.Gender
+import com.ss.medrecord.domain.model.MedicineFrequency
 import com.ss.medrecord.domain.model.Relationship
+import com.ss.medrecord.domain.model.ReminderStatus
+import com.ss.medrecord.domain.model.ReminderType
 import com.ss.medrecord.domain.model.ReportFileType
 import com.ss.medrecord.domain.model.SyncStatus
 import com.ss.medrecord.domain.model.UploadStatus
@@ -72,4 +75,35 @@ class Converters {
     @TypeConverter
     fun stringToUploadStatus(value: String): UploadStatus =
         runCatching { UploadStatus.valueOf(value) }.getOrDefault(UploadStatus.PENDING)
+
+    @TypeConverter
+    fun medicineFrequencyToString(value: MedicineFrequency): String = value.name
+
+    /**
+     * An unrecognised frequency degrades to as-needed rather than to a daily
+     * schedule. Getting this wrong in the other direction would have the app
+     * inventing dose reminders for a pattern it does not understand, which is
+     * worse than reminding about nothing.
+     */
+    @TypeConverter
+    fun stringToMedicineFrequency(value: String): MedicineFrequency =
+        runCatching { MedicineFrequency.valueOf(value) }.getOrDefault(MedicineFrequency.AS_NEEDED)
+
+    @TypeConverter
+    fun reminderTypeToString(value: ReminderType): String = value.name
+
+    @TypeConverter
+    fun stringToReminderType(value: String): ReminderType =
+        runCatching { ReminderType.valueOf(value) }.getOrDefault(ReminderType.MEDICINE)
+
+    @TypeConverter
+    fun reminderStatusToString(value: ReminderStatus): String = value.name
+
+    /**
+     * Unknown statuses read as DISMISSED, the one value that cannot cause a
+     * notification: a row this build cannot interpret must not be posted.
+     */
+    @TypeConverter
+    fun stringToReminderStatus(value: String): ReminderStatus =
+        runCatching { ReminderStatus.valueOf(value) }.getOrDefault(ReminderStatus.DISMISSED)
 }

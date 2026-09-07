@@ -14,6 +14,7 @@ import com.ss.medrecord.core.connectivity.NetworkStatus
 import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.ConsentDao
 import com.ss.medrecord.data.local.dao.FacilityDao
+import com.ss.medrecord.data.local.dao.MedicineDao
 import com.ss.medrecord.data.local.dao.PatientDao
 import com.ss.medrecord.data.local.dao.ReportDao
 import com.ss.medrecord.data.local.dao.UserDao
@@ -23,6 +24,7 @@ import com.ss.medrecord.data.sync.SyncWorker
 import com.ss.medrecord.data.upload.UploadScheduler
 import com.ss.medrecord.di.ApplicationScope
 import com.ss.medrecord.domain.model.AuthSession
+import com.ss.medrecord.domain.reminder.ReminderScheduler
 import com.ss.medrecord.domain.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,6 +55,7 @@ class SyncManager @Inject constructor(
     private val connectivityObserver: ConnectivityObserver,
     private val syncStateHolder: SyncStateHolder,
     private val uploadScheduler: UploadScheduler,
+    private val reminderScheduler: ReminderScheduler,
     userDao: UserDao,
     consentDao: ConsentDao,
     patientDao: PatientDao,
@@ -60,6 +63,7 @@ class SyncManager @Inject constructor(
     facilityDao: FacilityDao,
     visitDao: VisitDao,
     reportDao: ReportDao,
+    medicineDao: MedicineDao,
     @param:ApplicationScope private val scope: CoroutineScope,
 ) {
 
@@ -72,6 +76,7 @@ class SyncManager @Inject constructor(
         facilityDao.observePendingCount(),
         visitDao.observePendingCount(),
         reportDao.observePendingCount(),
+        medicineDao.observePendingCount(),
     ) { counts -> counts.sum() }
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, 0)
@@ -80,6 +85,7 @@ class SyncManager @Inject constructor(
         patientDao.observeConflictCount(),
         visitDao.observeConflictCount(),
         reportDao.observeConflictCount(),
+        medicineDao.observeConflictCount(),
     ) { counts -> counts.sum() }
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, 0)
@@ -111,7 +117,13 @@ class SyncManager @Inject constructor(
             .filter { it is AuthSession.Authenticated }
             .map { (it as AuthSession.Authenticated).userId }
             .distinctUntilChanged()
-            .onEach { syncNow() }
+            .onEach {
+                syncNow()
+                // A device signing in has whatever schedule the previous
+                // session left behind, or none at all. Rebuilding here is what
+                // arms the first alarm on a fresh install.
+                reminderScheduler.requestRebuild()
+            }
             .launchIn(scope)
 
         // Reconnect trigger. distinctUntilChanged keeps a flapping connection
