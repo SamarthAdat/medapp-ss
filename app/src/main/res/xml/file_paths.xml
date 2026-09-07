@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The only path the app ever shares outward: one cache directory the camera
-  writes a capture into. Deliberately narrow - a broader grant (external-path,
-  or files-path) would expose the encrypted report store and the database file
-  to any app holding the Uri.
+  The only paths the app ever shares outward, both narrow by design. A broader
+  grant (external-path, or files-path) would expose the encrypted report store
+  and the database file to any app holding the Uri.
+
+  capture/ is where the camera writes one photo before it is imported.
+  export/  holds at most one data export at a time, deliberately in cache so
+           the system can reclaim it and so it never survives a reinstall. The
+           exporter clears the directory before each write and on sign-out - a
+           stale copy of someone's whole medical history is precisely the kind
+           of file that leaks.
 -->
 <paths>
     <cache-path
         name="capture"
         path="capture/" />
+    <cache-path
+        name="export"
+        path="export/" />
 </paths>

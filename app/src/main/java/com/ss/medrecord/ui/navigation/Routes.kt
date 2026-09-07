@@ -113,3 +113,8 @@ data class FacilityDetailDestination(val facilityId: String)
 
 @Serializable
 data object NearbyFacilitiesDestination
+
+// --- Settings and compliance (Phase 9) ------------------------------------
+
+@Serializable
+data object ConflictDestination

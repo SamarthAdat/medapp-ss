@@ -8,6 +8,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.ss.medrecord.core.notification.NotificationChannels
 import com.ss.medrecord.data.notification.PushTokenRegistrar
+import com.ss.medrecord.data.retention.RetentionScheduler
 import com.ss.medrecord.domain.reminder.ReminderScheduler
 import com.ss.medrecord.domain.sync.SyncManager
 import dagger.hilt.android.HiltAndroidApp
@@ -35,6 +36,9 @@ class MedRecordApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var pushTokenRegistrar: PushTokenRegistrar
 
+    @Inject
+    lateinit var retentionScheduler: RetentionScheduler
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -54,6 +58,9 @@ class MedRecordApplication : Application(), Configuration.Provider {
         // before the first frame.
         reminderScheduler.initialize()
         pushTokenRegistrar.initialize()
+        // The 30-day grace period expires by the calendar, so something has to
+        // run on a device that is simply left alone.
+        retentionScheduler.initialize()
 
         // The third trigger from spec 6.2. Foreground is the moment the user is
         // most likely to care that their data is current, and it catches the

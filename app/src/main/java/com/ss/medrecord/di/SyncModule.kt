@@ -5,6 +5,11 @@ import androidx.work.WorkManager
 import com.ss.medrecord.data.audit.AuditLoggerImpl
 import com.ss.medrecord.data.sync.AuditSyncer
 import com.ss.medrecord.data.sync.ConsentSyncer
+import com.ss.medrecord.data.sync.FacilityConflictSource
+import com.ss.medrecord.data.sync.MedicineConflictSource
+import com.ss.medrecord.data.sync.PatientConflictSource
+import com.ss.medrecord.data.sync.ReportConflictSource
+import com.ss.medrecord.data.sync.VisitConflictSource
 import com.ss.medrecord.data.sync.FacilitySyncer
 import com.ss.medrecord.data.sync.MedicineSyncer
 import com.ss.medrecord.data.sync.PatientSyncer
@@ -12,6 +17,7 @@ import com.ss.medrecord.data.sync.ReportSyncer
 import com.ss.medrecord.data.sync.UserSyncer
 import com.ss.medrecord.data.sync.VisitSyncer
 import com.ss.medrecord.domain.audit.AuditLogger
+import com.ss.medrecord.domain.sync.ConflictSource
 import com.ss.medrecord.domain.sync.EntitySyncer
 import dagger.Binds
 import dagger.Module
@@ -66,6 +72,29 @@ abstract class SyncBindingsModule {
     @Binds
     @Singleton
     abstract fun bindAuditLogger(impl: AuditLoggerImpl): AuditLogger
+
+    // Only the five record types that can actually be edited in two places.
+    // Users, consents and audit entries sync but cannot conflict.
+
+    @Binds
+    @IntoSet
+    abstract fun bindPatientConflicts(impl: PatientConflictSource): ConflictSource
+
+    @Binds
+    @IntoSet
+    abstract fun bindFacilityConflicts(impl: FacilityConflictSource): ConflictSource
+
+    @Binds
+    @IntoSet
+    abstract fun bindVisitConflicts(impl: VisitConflictSource): ConflictSource
+
+    @Binds
+    @IntoSet
+    abstract fun bindReportConflicts(impl: ReportConflictSource): ConflictSource
+
+    @Binds
+    @IntoSet
+    abstract fun bindMedicineConflicts(impl: MedicineConflictSource): ConflictSource
 }
 
 @Module

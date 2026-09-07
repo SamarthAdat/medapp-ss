@@ -129,4 +129,11 @@ interface PatientDao {
 
     @Query("DELETE FROM patients")
     suspend fun deleteAll()
+
+    /**
+     * Rows parked by the sync engine because both sides changed. Excluded from
+     * the outbox, so nothing moves them until the user resolves them.
+     */
+    @Query("SELECT * FROM patients WHERE sync_status = 'CONFLICT'")
+    suspend fun getConflicts(): List<PatientEntity>
 }

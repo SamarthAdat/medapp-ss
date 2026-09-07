@@ -16,6 +16,7 @@ import com.ss.medrecord.domain.model.AuthSession
 import com.ss.medrecord.ui.feature.auth.forgot.ForgotPasswordRoute
 import com.ss.medrecord.ui.feature.auth.login.LoginRoute
 import com.ss.medrecord.ui.feature.auth.signup.SignUpRoute
+import com.ss.medrecord.ui.feature.conflict.ConflictRoute
 import com.ss.medrecord.ui.feature.consent.ConsentRoute
 import com.ss.medrecord.ui.feature.facility.detail.FacilityDetailRoute
 import com.ss.medrecord.ui.feature.facility.list.FacilityListRoute
@@ -146,7 +147,13 @@ fun MedRecordNavHost(
                 PatientEditRoute(onNavigateBack = { navController.popBackStack() })
             }
             composable<SettingsDestination> {
-                SettingsRoute(onNavigateBack = { navController.popBackStack() })
+                SettingsRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToConflicts = { navController.navigate(ConflictDestination) },
+                )
+            }
+            composable<ConflictDestination> {
+                ConflictRoute(onNavigateBack = { navController.popBackStack() })
             }
             composable<VisitListDestination> {
                 VisitListRoute(

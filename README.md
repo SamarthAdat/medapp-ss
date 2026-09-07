@@ -26,7 +26,7 @@ is committed.
 | 6 | Medicines, reminders, notifications | Done |
 | 7 | Dashboard and aggregated views | Done |
 | 8 | Maps and nearby facilities | Done |
-| 9 | Settings and compliance hardening | Planned |
+| 9 | Settings and compliance hardening | Done |
 | 10 | Polish, QA, release | Planned |
 
 Phase 5 needs the Firebase project on the Blaze plan, because Cloud Storage
@@ -57,6 +57,28 @@ in Room first and are pushed to Firestore best-effort; a failed push leaves the
 row `PENDING` for the sync worker to retry. This holds for server rejections as
 well as lost connectivity — a record refused by the security rules is queued and
 retried, not lost, and the user sees no error.
+
+**A conflict is a question, not a merge.** When a row with unsent local changes
+is found to have a newer copy on the server, the sync engine parks it rather
+than guessing - every automatic rule (newest wins, server wins, device wins)
+silently destroys a medical record someone deliberately wrote. Parking has a
+cost that has to be paid: a `CONFLICT` row is excluded from the outbox, so it
+never syncs again until a person chooses. Settings surfaces them and
+`ConflictScreen` presents both timestamps with two equally weighted buttons and
+no default, because the app genuinely does not know which copy is right.
+
+**Deletion actually deletes, eventually.** Removing a record marks `deleted_at`
+and hides it; `RetentionWorker` runs daily and hard-deletes rows past the 30-day
+grace period, removing each report's encrypted file first since no SQL cascade
+reaches the filesystem. A row is only purged once its deletion has reached the
+server - purging an unsynced deletion would erase it locally while the server
+still held it live, and the next pull would bring it back. Audit entries are
+never purged: they are evidence under a six-year rule and contain no clinical
+values.
+
+The remote copy is not erased by the client. That needs credentials no device
+should hold, so "request account deletion" records the request and clears the
+device, and says exactly that rather than claiming more.
 
 **Location is used and never kept.** The nearby search asks for coarse location
 only, uses it as a search radius, and never writes it anywhere - not to Room,

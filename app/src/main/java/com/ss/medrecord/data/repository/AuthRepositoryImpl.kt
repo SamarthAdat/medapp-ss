@@ -5,6 +5,7 @@ import com.ss.medrecord.core.common.DataResult
 import com.ss.medrecord.core.common.DispatcherProvider
 import com.ss.medrecord.core.file.CameraCaptureStore
 import com.ss.medrecord.core.file.EncryptedFileStore
+import com.ss.medrecord.data.export.DataExporter
 import com.ss.medrecord.data.local.dao.AuditLogDao
 import com.ss.medrecord.data.local.dao.UserDao
 import com.ss.medrecord.data.local.datastore.ActivePatientStore
@@ -35,6 +36,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val activePatientStore: ActivePatientStore,
     private val fileStore: EncryptedFileStore,
     private val cameraCaptureStore: CameraCaptureStore,
+    private val dataExporter: DataExporter,
     private val reminderScheduler: ReminderScheduler,
     private val deviceTokenDataSource: DeviceTokenDataSource,
     private val dispatchers: DispatcherProvider,
@@ -124,6 +126,9 @@ class AuthRepositoryImpl @Inject constructor(
             // never uploaded from a session that has now ended.
             fileStore.deleteAll()
             cameraCaptureStore.clear()
+            // An export is a plaintext copy of everything. It must not outlive
+            // the session that asked for it.
+            dataExporter.clear()
             // Audit entries are evidence, not cache, so only the ones already
             // safe in Firestore are dropped. Unpushed entries stay - they are
             // encrypted at rest, scoped to their own userId by every query, and

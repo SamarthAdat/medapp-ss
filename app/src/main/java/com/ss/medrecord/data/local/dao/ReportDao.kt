@@ -203,4 +203,35 @@ interface ReportDao {
 
     @Query("SELECT COUNT(*) FROM reports WHERE sync_status = 'CONFLICT'")
     fun observeConflictCount(): Flow<Int>
+
+    /**
+     * Rows parked by the sync engine because both sides changed. Excluded from
+     * the outbox, so nothing moves them until the user resolves them.
+     */
+    @Query("SELECT * FROM reports WHERE sync_status = 'CONFLICT'")
+    suspend fun getConflicts(): List<ReportEntity>
+
+    /**
+     * Soft-deleted rows whose grace period has expired and whose deletion has
+     * already reached the server (spec section 9.6).
+     *
+     * The sync_status condition is the important half. Purging a row that was
+     * deleted offline and never pushed would erase it here while the server
+     * still holds it live, and the next pull would bring it straight back -
+     * for a report, after its encrypted file had already been destroyed.
+     *
+     * Read rather than deleted in bulk so the caller can clean up whatever
+     * hangs off the row - a cached file, a scheduled alarm - that no SQL
+     * cascade will reach.
+     */
+    @Query(
+        """
+        SELECT * FROM reports
+        WHERE deleted_at IS NOT NULL AND deleted_at < :cutoff AND sync_status = 'SYNCED'
+        """,
+    )
+    suspend fun getPurgeable(cutoff: Long): List<ReportEntity>
+
+    @Query("DELETE FROM reports WHERE report_id = :reportId")
+    suspend fun hardDelete(reportId: String)
 }
