@@ -3,6 +3,7 @@ package com.ss.medrecord.ui.components
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import com.ss.medrecord.core.location.Coordinates
 
 /**
@@ -25,12 +26,10 @@ fun Context.openDirections(coordinates: Coordinates, label: String?): Boolean {
     // bare pin, and is understood by every maps app, not only Google's.
     val encodedLabel = Uri.encode(label.orEmpty())
     val uri = if (label.isNullOrBlank()) {
-        Uri.parse("geo:${coordinates.latitude},${coordinates.longitude}")
+        "geo:${coordinates.latitude},${coordinates.longitude}".toUri()
     } else {
-        Uri.parse(
-            "geo:${coordinates.latitude},${coordinates.longitude}" +
-                "?q=${coordinates.latitude},${coordinates.longitude}($encodedLabel)",
-        )
+        ("geo:${coordinates.latitude},${coordinates.longitude}" +
+            "?q=${coordinates.latitude},${coordinates.longitude}($encodedLabel)").toUri()
     }
 
     return runCatching {
@@ -47,7 +46,7 @@ fun Context.openDirections(coordinates: Coordinates, label: String?): Boolean {
  */
 fun Context.openDialer(phone: String): Boolean = runCatching {
     startActivity(
-        Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(phone)}"))
+        Intent(Intent.ACTION_DIAL, "tel:${Uri.encode(phone)}".toUri())
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
     )
 }.isSuccess

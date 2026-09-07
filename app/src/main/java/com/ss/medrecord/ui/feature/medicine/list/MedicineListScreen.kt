@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -357,17 +358,30 @@ private fun formatClock(millis: Long): String {
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")
 
+/**
+ * Opens where the user can turn notifications back on.
+ *
+ * ACTION_APP_NOTIFICATION_SETTINGS only exists from API 26; below that there is
+ * no per-app notification screen, so the app's details page is the closest
+ * thing. Without the branch the intent silently fails on API 24-25 and the
+ * button does nothing - the worst kind of bug, because the user concludes the
+ * app is broken rather than that their device is old.
+ */
 private fun Context.openAppNotificationSettings() {
-    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-        .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    runCatching { startActivity(intent) }
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData("package:$packageName".toUri())
+    }
+    runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
 
 private fun Context.openExactAlarmSettings() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
     val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-        .setData(android.net.Uri.parse("package:$packageName"))
+        .setData("package:$packageName".toUri())
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { startActivity(intent) }
 }

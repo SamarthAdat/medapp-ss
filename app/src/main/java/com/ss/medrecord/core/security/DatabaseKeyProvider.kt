@@ -1,6 +1,7 @@
 package com.ss.medrecord.core.security
 
 import android.content.Context
+import androidx.core.content.edit
 import android.util.Base64
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.GeneralSecurityException
@@ -48,7 +49,10 @@ class DatabaseKeyProvider @Inject constructor(
             return unwrap(stored)
         }
         val passphrase = ByteArray(PASSPHRASE_LENGTH_BYTES).also { SecureRandom().nextBytes(it) }
-        prefs.edit().putString(KEY_WRAPPED_PASSPHRASE, wrap(passphrase)).commit()
+        // commit, not apply. The passphrase this returns is used immediately to
+        // open the database; if the process died before an async write flushed,
+        // the key would be gone and the encrypted store unopenable forever.
+        prefs.edit(commit = true) { putString(KEY_WRAPPED_PASSPHRASE, wrap(passphrase)) }
         return passphrase
     }
 
@@ -58,7 +62,9 @@ class DatabaseKeyProvider @Inject constructor(
      */
     @Synchronized
     fun resetKeyMaterial() {
-        prefs.edit().remove(KEY_WRAPPED_PASSPHRASE).commit()
+        // commit for the same reason: the caller deletes the database file next,
+        // and a half-applied reset would leave a file with no key to open it.
+        prefs.edit(commit = true) { remove(KEY_WRAPPED_PASSPHRASE) }
         KeystoreAesKeys.deleteKey(KEY_ALIAS)
     }
 

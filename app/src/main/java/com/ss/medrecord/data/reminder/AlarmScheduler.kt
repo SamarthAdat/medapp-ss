@@ -8,6 +8,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,7 +55,7 @@ class AlarmScheduler @Inject constructor(
     fun exactAlarmSettingsIntent(): Intent? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
         return Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-            .setData(android.net.Uri.parse("package:${context.packageName}"))
+            .setData("package:${context.packageName}".toUri())
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 

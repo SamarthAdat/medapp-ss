@@ -18,7 +18,7 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberMarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.ss.medrecord.BuildConfig
 import com.ss.medrecord.core.location.Coordinates
@@ -97,8 +97,16 @@ fun FacilityMap(
         ),
     ) {
         pins.forEach { pin ->
+            // Remembered, not constructed inline. A MarkerState built during
+            // composition is thrown away and rebuilt on every recomposition,
+            // which drops whatever the marker was doing - an open info window
+            // closes itself the moment anything else on the screen changes.
+            val markerState = rememberMarkerState(
+                key = pin.id,
+                position = LatLng(pin.coordinates.latitude, pin.coordinates.longitude),
+            )
             Marker(
-                state = MarkerState(LatLng(pin.coordinates.latitude, pin.coordinates.longitude)),
+                state = markerState,
                 title = pin.title,
                 snippet = pin.snippet,
                 onClick = {

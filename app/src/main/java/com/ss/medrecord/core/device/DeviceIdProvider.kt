@@ -1,6 +1,7 @@
 package com.ss.medrecord.core.device
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.MessageDigest
 import java.util.UUID
@@ -27,7 +28,10 @@ class DeviceIdProvider @Inject constructor(
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.getString(KEY_INSTALL_ID, null)?.let { return it }
         val generated = UUID.randomUUID().toString()
-        prefs.edit().putString(KEY_INSTALL_ID, generated).commit()
+        // commit, not apply: the value is returned and hashed into audit entries
+        // on the next line, and an id that failed to persist would silently
+        // become a different device in the trail after a restart.
+        prefs.edit(commit = true) { putString(KEY_INSTALL_ID, generated) }
         return generated
     }
 

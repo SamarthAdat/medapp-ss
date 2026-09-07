@@ -24,6 +24,20 @@ val secrets = Properties().apply {
 }
 val mapsApiKey: String = secrets.getProperty("MAPS_API_KEY").orEmpty().trim()
 
+/**
+ * Release signing, read from the gitignored `keystore.properties`.
+ *
+ * Absent on every machine but the one that publishes, and that is deliberate:
+ * a clean clone still builds a release APK, it just comes out unsigned. The
+ * alternative - committing the keystore or its password - would put the ability
+ * to publish an update to a medical records app in the repository.
+ */
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+val hasSigningConfig = keystoreProperties.getProperty("storeFile") != null
+
 android {
     namespace = "com.ss.medrecord"
     compileSdk {
@@ -52,12 +66,65 @@ android {
         buildConfigField("Boolean", "HAS_MAPS_KEY", mapsApiKey.isNotBlank().toString())
     }
 
-    buildTypes {
-        release {
-            optimization {
-                enable = false
+    signingConfigs {
+        if (hasSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                // v2+ only. v1 (jar signing) is unnecessary above minSdk 24 and
+                // its per-entry signatures are the weaker scheme.
+                enableV1Signing = false
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
+    }
+
+    buildTypes {
+        release {
+            // R8: shrink, optimise and obfuscate. Obfuscation is not a security
+            // control on its own - the data protections are the database and
+            // file encryption - but shipping a medical app with every class and
+            // method name intact hands an attacker a free map.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            signingConfig = if (hasSigningConfig) {
+                signingConfigs.getByName("release")
+            } else {
+                // Unsigned rather than debug-signed. A release APK carrying the
+                // debug certificate is one that can be installed over a real
+                // build, and it should be obvious that it is not shippable.
+                null
+            }
+        }
+
+        debug {
+            // Only the version name is suffixed. An applicationId suffix would
+            // let a debug build sit alongside a store install, but google-services.json
+            // registers exactly com.ss.medrecord - a suffixed id fails Firebase
+            // initialisation at launch, which is a worse trade than sharing the id.
+            versionNameSuffix = "-debug"
+        }
+    }
+
+    lint {
+        // Lint runs as part of the release path and blocks on real errors.
+        abortOnError = true
+        warningsAsErrors = false
+        // Dependency-freshness noise: several versions here are pinned on
+        // purpose (maps-compose to the last Kotlin 2.2 build, AGP to the one
+        // KSP matches), so "newer available" is not actionable.
+        disable += listOf(
+            "NewerVersionAvailable",
+            "GradleDependency",
+            "AndroidGradlePluginVersion",
+        )
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

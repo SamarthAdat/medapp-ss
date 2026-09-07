@@ -1,5 +1,7 @@
 package com.ss.medrecord.domain.model
 
+import java.util.Locale
+
 /**
  * A report file attached to a visit (spec section 4.5) - a scan, a lab result,
  * a discharge summary.
@@ -122,5 +124,7 @@ data class ReportWithContext(
 fun formatFileSize(bytes: Long): String = when {
     bytes < 1024 -> "$bytes B"
     bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-    else -> String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+    // Explicit locale: this is read by a person, and a device that writes
+    // decimals with a comma should see "1,4 MB".
+    else -> String.format(Locale.getDefault(), "%.1f MB", bytes / (1024.0 * 1024.0))
 }

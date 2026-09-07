@@ -27,7 +27,7 @@ is committed.
 | 7 | Dashboard and aggregated views | Done |
 | 8 | Maps and nearby facilities | Done |
 | 9 | Settings and compliance hardening | Done |
-| 10 | Polish, QA, release | Planned |
+| 10 | Polish, QA, release | Done |
 
 Phase 5 needs the Firebase project on the Blaze plan, because Cloud Storage
 buckets require it on projects created after late 2024, and it needs the default
@@ -277,6 +277,49 @@ the source of truth for anything not yet synced.
 | 4 | `facilities`, `visits` |
 | 5 | `reports` |
 | 6 | `medicines`, `reminders` |
+
+## Releasing
+
+The release build is minified, shrunk and obfuscated by R8, and signed from a
+gitignored `keystore.properties` (see `keystore.properties.template`). With that
+file absent the build still succeeds and comes out **unsigned** rather than
+silently carrying the debug certificate.
+
+```
+./gradlew :app:assembleRelease
+```
+
+`app/proguard-rules.pro` exists because R8 cannot see reflection. Every rule in
+it names what breaks without it - obfuscating a `@Serializable` navigation route
+breaks every `navigate()` call, renaming a Worker class means the reminder sweep
+and the retention purge silently never run again, and stripping SQLCipher's JNI
+classes bricks the database outright. All three fail only in release, which is
+why the release APK is installed and driven before shipping rather than assumed
+to work.
+
+**Keep `app/build/outputs/mapping/release/mapping.txt` for every build you
+ship.** Without it a crash report from the field is a list of `a()`, `b()`,
+`c()`.
+
+Before each release:
+
+| Check | Why |
+|---|---|
+| `./gradlew :app:lintRelease` clean | Lint blocks on errors; the release path runs it |
+| Unit and instrumented suites pass | `testDebugUnitTest`, `connectedDebugAndroidTest` |
+| Release APK installed and launched | R8 breakage is invisible until runtime |
+| Maps key restricted in Cloud console | Package + SHA-1 of the **release** cert, not just debug |
+| `versionCode` incremented | Play rejects a duplicate |
+| Rules deployed if a collection was added | `firebase deploy --only firestore:rules,storage` |
+| Grievance contact is real | `ConsentTexts.GRIEVANCE_CONTACT`, required by DPDP |
+
+Backup is off (`allowBackup="false"`) and both backup rule files exclude
+everything explicitly. The SQLCipher passphrase is wrapped by a hardware-backed
+Keystore key that never leaves the device, so backed-up ciphertext would restore
+as an unopenable file - and health records should not travel through a channel
+the user was never asked about. The real backup is the Firestore sync, which the
+user did consent to and can export or erase.
+
 
 ## Compliance note
 

@@ -1,6 +1,7 @@
 package com.ss.medrecord.data.reminder
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -51,6 +52,10 @@ class ReminderNotifier @Inject constructor(
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    // POST_NOTIFICATIONS is checked by canPost() on the first line, and the
+    // call is wrapped in runCatching besides. Lint cannot follow the check
+    // through a helper, so it is suppressed here rather than duplicated inline.
+    @SuppressLint("MissingPermission")
     fun post(reminder: Reminder) {
         if (!canPost()) {
             Log.d(TAG, "Notifications not permitted; dropping reminder ${reminder.reminderId}")

@@ -11,6 +11,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -127,9 +128,15 @@ data class Coordinates(
     }
 }
 
-/** "450 m" or "2.3 km" - a distance a person can act on, not six decimal places. */
+/**
+ * "450 m" or "2.3 km" - a distance a person can act on, not six decimal places.
+ *
+ * The locale is passed explicitly because it is being read by a person: a
+ * device set to a locale that writes decimals with a comma should see "2,3 km".
+ * Leaving it implicit is the same call made by accident.
+ */
 fun formatDistance(metres: Double): String = when {
     metres < 1000 -> "${metres.toInt()} m"
-    metres < 10_000 -> String.format("%.1f km", metres / 1000)
+    metres < 10_000 -> String.format(Locale.getDefault(), "%.1f km", metres / 1000)
     else -> "${(metres / 1000).toInt()} km"
 }

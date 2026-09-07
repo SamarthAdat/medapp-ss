@@ -1,6 +1,7 @@
 package com.ss.medrecord.core.file
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
@@ -53,10 +54,9 @@ class PdfPageRenderer @Inject constructor(
     private fun PdfRenderer.renderPage(index: Int, targetWidth: Int): Bitmap =
         openPage(index).use { page ->
             val scale = targetWidth.toFloat() / page.width
-            val bitmap = Bitmap.createBitmap(
+            val bitmap = createBitmap(
                 targetWidth,
                 (page.height * scale).toInt().coerceAtLeast(1),
-                Bitmap.Config.ARGB_8888,
             )
             // PDF pages render with a transparent background, which reads as
             // black text on nothing. Paper is white.

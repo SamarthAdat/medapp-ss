@@ -2,6 +2,7 @@ package com.ss.medrecord.ui.feature.settings
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -502,14 +503,24 @@ private val TIMESTAMP_FORMAT: DateTimeFormatter =
 private fun formatInstant(millis: Long): String =
     TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
+/**
+ * Opens where the user can turn notifications back on.
+ *
+ * ACTION_APP_NOTIFICATION_SETTINGS only exists from API 26; below that there is
+ * no per-app notification screen, so the app's details page is the closest
+ * thing. Without the branch the intent silently fails on API 24-25 and the
+ * button does nothing - the worst kind of bug, because the user concludes the
+ * app is broken rather than that their device is old.
+ */
 private fun Context.openAppNotificationSettings() {
-    runCatching {
-        startActivity(
-            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData("package:$packageName".toUri())
     }
+    runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
 
 /**
