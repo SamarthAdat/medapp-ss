@@ -50,3 +50,16 @@ data class VisitWithFacility(
     /** Facilities are soft-deleted, so a missing one is a data gap, not normal. */
     val facilityName: String get() = facility?.name ?: "Unknown facility"
 }
+
+/**
+ * A visit with only the names a cross-patient view needs.
+ *
+ * Deliberately not [VisitWithFacility]: the dashboard and the timeline list
+ * visits across every patient, where "whose visit was this" matters and the
+ * clinic's address and phone number are dead weight on every row.
+ */
+data class VisitWithContext(
+    val visit: Visit,
+    val facilityName: String?,
+    val patientName: String?,
+)

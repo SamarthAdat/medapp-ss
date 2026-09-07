@@ -24,7 +24,7 @@ is committed.
 | 4 | Facilities and visit records | Done |
 | 5 | Reports and the file pipeline (2 MB cap) | Done |
 | 6 | Medicines, reminders, notifications | Done |
-| 7 | Dashboard and aggregated views | Planned |
+| 7 | Dashboard and aggregated views | Done |
 | 8 | Maps and nearby facilities | Planned |
 | 9 | Settings and compliance hardening | Planned |
 | 10 | Polish, QA, release | Planned |
@@ -57,6 +57,15 @@ in Room first and are pushed to Firestore best-effort; a failed push leaves the
 row `PENDING` for the sync worker to retry. This holds for server rejections as
 well as lost connectivity — a record refused by the security rules is queued and
 retried, not lost, and the user sees no error.
+
+**Aggregates are computed once, not per section.** The dashboard and the
+timeline observe the whole account and scope in memory rather than issuing a
+query per section per patient. At one family's scale that is a handful of small
+queries instead of a dozen, and it removes a class of bug the per-section
+approach invites: a count claiming three visits beside a list showing two,
+because the two reads happened at different moments during a sync. The merging
+and date arithmetic live in `domain/usecase` as pure functions, so they are
+tested without a database, a dispatcher or Android.
 
 **Reminders are the one thing that never syncs.** Every other record round-trips
 to Firestore; reminder rows stay on the device that has to ring. They are a
@@ -188,8 +197,9 @@ configuration and is gitignored. To build:
    ./gradlew :app:installDebug
    ```
 
-Run the tests with `./gradlew :app:testDebugUnitTest`. The cascade and migration
-guards need a device or emulator: `./gradlew :app:connectedDebugAndroidTest`.
+Run the tests with `./gradlew :app:testDebugUnitTest`. The cascade guards, the
+reminder engine, the joined queries and the dashboard's Compose rendering need a
+device or emulator: `./gradlew :app:connectedDebugAndroidTest`.
 
 **Redeploy the rules whenever a phase adds a collection.** Until they are
 published, writes to the new collection are rejected and queue locally. Nothing

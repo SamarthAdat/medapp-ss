@@ -3,6 +3,7 @@ package com.ss.medrecord.data.repository
 import com.ss.medrecord.core.common.DataResult
 import com.ss.medrecord.core.common.DispatcherProvider
 import com.ss.medrecord.data.local.dao.VisitDao
+import com.ss.medrecord.data.local.dao.VisitWithContextRow
 import com.ss.medrecord.data.local.dao.VisitWithFacilityRow
 import com.ss.medrecord.data.local.entity.toDomain
 import com.ss.medrecord.data.local.entity.toEntity
@@ -13,6 +14,7 @@ import com.ss.medrecord.domain.model.AuditAction
 import com.ss.medrecord.domain.model.AuditEntityType
 import com.ss.medrecord.domain.model.SyncStatus
 import com.ss.medrecord.domain.model.Visit
+import com.ss.medrecord.domain.model.VisitWithContext
 import com.ss.medrecord.domain.model.VisitWithFacility
 import com.ss.medrecord.domain.repository.VisitRepository
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +40,9 @@ class VisitRepositoryImpl @Inject constructor(
 
     override fun observeVisitsAtFacility(facilityId: String): Flow<List<Visit>> =
         visitDao.observeVisitsAtFacility(facilityId).map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeVisitsWithContext(userId: String): Flow<List<VisitWithContext>> =
+        visitDao.observeVisitsWithContext(userId).map { rows -> rows.map { it.toDomain() } }
 
     override fun observeVisitCount(patientId: String): Flow<Int> =
         visitDao.observeVisitCount(patientId)
@@ -116,4 +121,10 @@ class VisitRepositoryImpl @Inject constructor(
 fun VisitWithFacilityRow.toDomain(): VisitWithFacility = VisitWithFacility(
     visit = visit.toDomain(),
     facility = facility?.takeIf { it.facilityId.isNotBlank() }?.toDomain(),
+)
+
+fun VisitWithContextRow.toDomain(): VisitWithContext = VisitWithContext(
+    visit = visit.toDomain(),
+    facilityName = facilityName,
+    patientName = patientName,
 )

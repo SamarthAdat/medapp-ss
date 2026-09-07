@@ -25,6 +25,7 @@ import com.ss.medrecord.ui.feature.patient.list.PatientListRoute
 import com.ss.medrecord.ui.feature.report.list.ReportListRoute
 import com.ss.medrecord.ui.feature.report.viewer.ReportViewerRoute
 import com.ss.medrecord.ui.feature.settings.SettingsRoute
+import com.ss.medrecord.ui.feature.timeline.TimelineRoute
 import com.ss.medrecord.ui.feature.visit.detail.VisitDetailRoute
 import com.ss.medrecord.ui.feature.visit.edit.VisitEditRoute
 import com.ss.medrecord.ui.feature.visit.list.VisitListRoute
@@ -116,6 +117,12 @@ fun MedRecordNavHost(
                     onNavigateToAddVisit = { navController.navigate(VisitEditDestination()) },
                     onNavigateToReports = { navController.navigate(ReportListDestination) },
                     onNavigateToMedicines = { navController.navigate(MedicineListDestination) },
+                    onNavigateToTimeline = { navController.navigate(TimelineDestination) },
+                    onOpenVisit = { navController.navigate(VisitDetailDestination(it)) },
+                    onOpenReport = { navController.navigate(ReportViewerDestination(it)) },
+                    onOpenMedicine = { medicineId ->
+                        navController.navigate(MedicineEditDestination(medicineId = medicineId))
+                    },
                 )
             }
             composable<PatientListDestination> {
@@ -178,6 +185,16 @@ fun MedRecordNavHost(
             }
             composable<MedicineEditDestination> {
                 MedicineEditRoute(onNavigateBack = { navController.popBackStack() })
+            }
+            composable<TimelineDestination> {
+                TimelineRoute(
+                    onNavigateBack = { navController.popBackStack() },
+                    onOpenVisit = { navController.navigate(VisitDetailDestination(it)) },
+                    onOpenReport = { navController.navigate(ReportViewerDestination(it)) },
+                    onOpenMedicine = { medicineId ->
+                        navController.navigate(MedicineEditDestination(medicineId = medicineId))
+                    },
+                )
             }
         }
     }

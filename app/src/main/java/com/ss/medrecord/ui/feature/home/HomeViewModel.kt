@@ -3,34 +3,23 @@ package com.ss.medrecord.ui.feature.home
 import androidx.lifecycle.viewModelScope
 import com.ss.medrecord.core.connectivity.ConnectivityObserver
 import com.ss.medrecord.core.ui.BaseViewModel
-import com.ss.medrecord.domain.model.AuthSession
-import com.ss.medrecord.domain.repository.MedicineRepository
-import com.ss.medrecord.domain.repository.ReminderRepository
-import com.ss.medrecord.domain.repository.ReportRepository
-import com.ss.medrecord.domain.repository.VisitRepository
-import com.ss.medrecord.domain.session.ActivePatientManager
-import com.ss.medrecord.domain.session.SessionManager
 import com.ss.medrecord.domain.sync.SyncManager
+import com.ss.medrecord.domain.usecase.ObserveDashboard
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
-@OptIn(ExperimentalCoroutinesApi::class)
+/**
+ * Thin by design. The dashboard's arithmetic lives in [ObserveDashboard], which
+ * is testable without Android; what is left here is connectivity, sync status
+ * and turning taps into navigation.
+ */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     connectivityObserver: ConnectivityObserver,
-    activePatientManager: ActivePatientManager,
+    observeDashboard: ObserveDashboard,
     private val syncManager: SyncManager,
-    visitRepository: VisitRepository,
-    reportRepository: ReportRepository,
-    medicineRepository: MedicineRepository,
-    reminderRepository: ReminderRepository,
-    sessionManager: SessionManager,
 ) : BaseViewModel<HomeUiState, HomeEvent, HomeEffect>(
     initialState = HomeUiState(networkStatus = connectivityObserver.currentStatus()),
 ) {
@@ -40,63 +29,12 @@ class HomeViewModel @Inject constructor(
             .onEach { status -> setState { copy(networkStatus = status) } }
             .launchIn(viewModelScope)
 
-        combine(
-            activePatientManager.activePatient,
-            activePatientManager.patients,
-        ) { active, all -> active to all.size }
-            .onEach { (active, count) ->
-                setState { copy(activePatient = active, patientCount = count) }
-            }
+        observeDashboard()
+            .onEach { snapshot -> setState { copy(dashboard = snapshot, isLoading = false) } }
             .launchIn(viewModelScope)
 
         syncManager.status
             .onEach { status -> setState { copy(syncStatus = status) } }
-            .launchIn(viewModelScope)
-
-        activePatientManager.activePatient
-            .flatMapLatest { patient ->
-                if (patient == null) flowOf(0) else visitRepository.observeVisitCount(patient.patientId)
-            }
-            .onEach { count -> setState { copy(visitCount = count) } }
-            .launchIn(viewModelScope)
-
-        activePatientManager.activePatient
-            .flatMapLatest { patient ->
-                if (patient == null) {
-                    flowOf(0)
-                } else {
-                    reportRepository.observeReportCountForPatient(patient.patientId)
-                }
-            }
-            .onEach { count -> setState { copy(reportCount = count) } }
-            .launchIn(viewModelScope)
-
-        activePatientManager.activePatient
-            .flatMapLatest { patient ->
-                if (patient == null) {
-                    flowOf(0)
-                } else {
-                    medicineRepository.observeActiveCountForPatient(patient.patientId)
-                }
-            }
-            .onEach { count -> setState { copy(medicineCount = count) } }
-            .launchIn(viewModelScope)
-
-        // Account-wide rather than per-patient: the point of the number is "how
-        // many doses does this household still owe today", and someone giving
-        // a child their medicine should not have to switch profile to see it.
-        sessionManager.session
-            .flatMapLatest { session ->
-                when (session) {
-                    is AuthSession.Authenticated ->
-                        reminderRepository.observeToday(session.userId)
-
-                    else -> flowOf(emptyList())
-                }
-            }
-            .onEach { reminders ->
-                setState { copy(dosesDueToday = reminders.count { it.isPending }) }
-            }
             .launchIn(viewModelScope)
     }
 
@@ -110,7 +48,13 @@ class HomeViewModel @Inject constructor(
             HomeEvent.OpenVisits -> sendEffect(HomeEffect.NavigateToVisits)
             HomeEvent.OpenReports -> sendEffect(HomeEffect.NavigateToReports)
             HomeEvent.OpenMedicines -> sendEffect(HomeEffect.NavigateToMedicines)
+            HomeEvent.OpenTimeline -> sendEffect(HomeEffect.NavigateToTimeline)
             HomeEvent.AddVisit -> sendEffect(HomeEffect.NavigateToAddVisit)
+
+            is HomeEvent.ActivityClicked -> sendEffect(event.entry.destinationEffect())
+
+            is HomeEvent.AppointmentClicked ->
+                sendEffect(HomeEffect.NavigateToVisit(event.visitId))
 
             HomeEvent.SyncNowClicked -> {
                 if (currentState.syncStatus.isOnline) {

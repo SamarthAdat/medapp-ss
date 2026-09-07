@@ -1,5 +1,6 @@
 package com.ss.medrecord.data.local.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Insert
@@ -14,6 +15,18 @@ import kotlinx.coroutines.flow.Flow
 data class VisitWithFacilityRow(
     @Embedded val visit: VisitEntity,
     @Embedded(prefix = "fac_") val facility: FacilityEntity?,
+)
+
+/**
+ * A visit with only the two names an account-wide view needs, rather than the
+ * whole facility row. The dashboard and the timeline list visits across every
+ * patient, where "whose visit was this" matters and the clinic's phone number
+ * does not.
+ */
+data class VisitWithContextRow(
+    @Embedded val visit: VisitEntity,
+    @ColumnInfo(name = "ctx_facility_name") val facilityName: String?,
+    @ColumnInfo(name = "ctx_patient_name") val patientName: String?,
 )
 
 @Dao
@@ -90,6 +103,29 @@ interface VisitDao {
 
     @Query("SELECT COUNT(*) FROM visits WHERE patient_id = :patientId AND deleted_at IS NULL")
     fun observeVisitCount(patientId: String): Flow<Int>
+
+    /**
+     * Every visit on the account with the names a cross-patient view needs.
+     *
+     * Account-wide and unbounded, like the reports and medicines equivalents:
+     * one query feeds the dashboard's recent activity, its upcoming
+     * appointments and the timeline, and the alternative - a query per section
+     * per patient - would be several round trips that can disagree with each
+     * other mid-sync.
+     */
+    @Query(
+        """
+        SELECT v.*,
+               f.name AS ctx_facility_name,
+               p.name AS ctx_patient_name
+        FROM visits v
+        LEFT JOIN facilities f ON v.facility_id = f.facility_id
+        LEFT JOIN patients p ON v.patient_id = p.patient_id
+        WHERE v.user_id = :userId AND v.deleted_at IS NULL
+        ORDER BY v.visit_date_epoch_day DESC, v.created_at DESC
+        """,
+    )
+    fun observeVisitsWithContext(userId: String): Flow<List<VisitWithContextRow>>
 
     /**
      * Visits with a follow-up falling inside the reminder horizon (spec 4.6).

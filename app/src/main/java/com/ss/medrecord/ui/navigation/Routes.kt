@@ -95,3 +95,13 @@ data class MedicineEditDestination(
     val medicineId: String? = null,
     val visitId: String? = null,
 )
+
+// --- Dashboard and aggregated views (Phase 7) -----------------------------
+
+/**
+ * The merged history. Takes no arguments: which patient it shows follows the
+ * active-patient context and the screen's own "all patients" toggle, so a
+ * deep-linked timeline can never disagree with the chip in the app bar.
+ */
+@Serializable
+data object TimelineDestination
