@@ -142,6 +142,9 @@ fun HomeScreen(
     Box(modifier = modifier.fillMaxSize().background(colors.canvas)) {
         Scaffold(
             containerColor = Color.Transparent,
+            // Same reason as MedScreen: a transparent container leaves the
+            // content colour unspecified, and Text draws that in black.
+            contentColor = colors.textPrimary,
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
                 HomeBottomBar(

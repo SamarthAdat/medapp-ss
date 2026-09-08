@@ -249,6 +249,16 @@ fun MedScreen(
     ) {
         Scaffold(
             containerColor = Color.Transparent,
+            // The page ink, said out loud.
+            //
+            // Scaffold derives its content colour from the container, and
+            // contentColorFor(Transparent) is unspecified - which Text resolves
+            // to black. On a near-black canvas that is invisible text, and it
+            // shows up only where a call site forgot to name a colour, which is
+            // how a visit's date, doctor and patient came to be unreadable in
+            // dark while their labels were fine. Naming it here means forgetting
+            // is no longer a way to be wrong.
+            contentColor = colors.textPrimary,
             topBar = topBar,
             bottomBar = bottomBar,
             floatingActionButton = floatingActionButton,

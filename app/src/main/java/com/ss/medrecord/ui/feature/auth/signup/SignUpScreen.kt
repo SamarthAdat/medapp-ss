@@ -77,6 +77,9 @@ fun SignUpScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent,
+        // A transparent container leaves the content colour unspecified, and
+        // Text draws that in black - invisible on the dark canvas.
+        contentColor = colors.textPrimary,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         AuthScaffold(

@@ -28,7 +28,24 @@ import com.ss.medrecord.domain.model.Facility
 import com.ss.medrecord.domain.model.FacilityType
 import com.ss.medrecord.domain.model.NearbyPlace
 import com.ss.medrecord.domain.model.Visit
+import com.ss.medrecord.domain.model.Medicine
+import com.ss.medrecord.domain.model.MedicineWithContext
+import com.ss.medrecord.domain.model.Report
+import com.ss.medrecord.domain.model.ReportFileType
+import com.ss.medrecord.domain.model.ReportWithContext
+import com.ss.medrecord.domain.model.UploadStatus
+import com.ss.medrecord.domain.model.VisitWithFacility
 import com.ss.medrecord.ui.feature.consent.ConsentScreen
+import com.ss.medrecord.ui.feature.medicine.list.MedicineListScreen
+import com.ss.medrecord.ui.feature.medicine.list.MedicineListUiState
+import com.ss.medrecord.ui.feature.patient.list.PatientListScreen
+import com.ss.medrecord.ui.feature.patient.list.PatientListUiState
+import com.ss.medrecord.ui.feature.report.list.ReportListScreen
+import com.ss.medrecord.ui.feature.report.list.ReportListUiState
+import com.ss.medrecord.ui.feature.visit.detail.VisitDetailScreen
+import com.ss.medrecord.ui.feature.visit.detail.VisitDetailUiState
+import com.ss.medrecord.ui.feature.visit.list.VisitListScreen
+import com.ss.medrecord.ui.feature.visit.list.VisitListUiState
 import com.ss.medrecord.ui.feature.facility.detail.FacilityDetailScreen
 import com.ss.medrecord.ui.feature.facility.detail.FacilityDetailUiState
 import com.ss.medrecord.ui.feature.facility.list.FacilityListScreen
@@ -283,6 +300,137 @@ class DesignCaptureTest {
         phone = "+91 80 1234 5678",
         latitude = 12.98,
         longitude = 77.61,
+        createdAt = 0L,
+        updatedAt = 0L,
+    )
+
+    @Test
+    fun captureVisitDetailDark() = capture("visit-detail-dark", dark = true) {
+        VisitDetailScreen(state = visitDetail(), onEvent = {})
+    }
+
+    @Test
+    fun captureVisitDetailLight() = capture("visit-detail-light", dark = false) {
+        VisitDetailScreen(state = visitDetail(), onEvent = {})
+    }
+
+    @Test
+    fun captureVisitListDark() = capture("visit-list-dark", dark = true) {
+        VisitListScreen(
+            state = VisitListUiState(
+                isLoading = false,
+                activePatient = asha,
+                visits = listOf(
+                    VisitWithFacility(visit = routineVisit, facility = cityCare),
+                ),
+            ),
+            onEvent = {},
+        )
+    }
+
+    @Test
+    fun capturePatientListDark() = capture("patient-list-dark", dark = true) {
+        PatientListScreen(
+            state = PatientListUiState(
+                isLoading = false,
+                activePatientId = "p1",
+                patients = listOf(asha, vikram),
+            ),
+            onEvent = {},
+        )
+    }
+
+    @Test
+    fun captureMedicineListDark() = capture("medicine-list-dark", dark = true) {
+        MedicineListScreen(
+            state = MedicineListUiState(
+                isLoading = false,
+                activePatient = asha,
+                allMedicines = listOf(
+                    MedicineWithContext(
+                        medicine = Medicine(
+                            medicineId = "m1",
+                            userId = "u1",
+                            patientId = "p1",
+                            visitId = "v1",
+                            name = "Metformin",
+                            dosage = "500 mg",
+                            frequency = MedicineFrequency.DAILY,
+                            reminderTimes = listOf(8 * 60, 20 * 60),
+                            startDateEpochDay = TODAY.minusDays(30).toEpochDay(),
+                            instructions = "After food, with water",
+                            createdAt = 0L,
+                            updatedAt = 0L,
+                        ),
+                        patientName = "Asha Rao",
+                        facilityName = "City Care Clinic",
+                        visitDateEpochDay = TODAY.minusDays(30).toEpochDay(),
+                    ),
+                ),
+                todaysReminders = listOf(
+                    Reminder(
+                        reminderId = 1L,
+                        userId = "u1",
+                        patientId = "p1",
+                        type = ReminderType.MEDICINE,
+                        sourceId = "m1",
+                        triggerAtMillis = System.currentTimeMillis() + 3_600_000L,
+                        title = "Metformin",
+                        message = "500 mg",
+                        status = ReminderStatus.SCHEDULED,
+                    ),
+                ),
+            ),
+            onEvent = {},
+        )
+    }
+
+    @Test
+    fun captureReportListDark() = capture("report-list-dark", dark = true) {
+        ReportListScreen(
+            state = ReportListUiState(
+                isLoading = false,
+                activePatient = asha,
+                allReports = listOf(
+                    ReportWithContext(
+                        report = Report(
+                            reportId = "r1",
+                            userId = "u1",
+                            patientId = "p1",
+                            visitId = "v1",
+                            fileName = "blood-panel.pdf",
+                            fileType = ReportFileType.PDF,
+                            fileSizeBytes = 812_004,
+                            uploadStatus = UploadStatus.UPLOADED,
+                            createdAt = 0L,
+                            updatedAt = 0L,
+                        ),
+                        visitDateEpochDay = TODAY.minusDays(3).toEpochDay(),
+                        facilityName = "City Care Clinic",
+                        patientName = "Asha Rao",
+                    ),
+                ),
+            ),
+            onEvent = {},
+            loadThumbnail = { null },
+        )
+    }
+
+    private fun visitDetail() = VisitDetailUiState(
+        isLoading = false,
+        patientName = "Asha Rao",
+        visit = VisitWithFacility(visit = routineVisit, facility = cityCare),
+    )
+
+    private val routineVisit = Visit(
+        visitId = "v1",
+        userId = "u1",
+        patientId = "p1",
+        facilityId = "f1",
+        doctorName = "Dr Mehta",
+        visitDateEpochDay = TODAY.toEpochDay(),
+        notes = "Routine check-up. Blood work ordered, results next week.",
+        nextVisitDateEpochDay = TODAY.plusDays(7).toEpochDay(),
         createdAt = 0L,
         updatedAt = 0L,
     )
