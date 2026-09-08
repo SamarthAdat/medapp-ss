@@ -90,6 +90,7 @@ fun PatientListScreen(
 
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         topBar = {
             MedTopBar(
                 title = "Whose records?",

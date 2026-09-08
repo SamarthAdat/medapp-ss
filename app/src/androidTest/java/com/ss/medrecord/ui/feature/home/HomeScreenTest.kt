@@ -147,6 +147,31 @@ class HomeScreenTest {
         assertTrue(events.contains(HomeEvent.OpenTimeline))
     }
 
+    @Test
+    fun theClinicsShelfIsTheWayIntoTheFacilitiesFeature() {
+        // Regression: the redesign left HomeEvent.OpenFacilities with no caller,
+        // which took saved clinics, the map and find-nearby off the app
+        // entirely. Nothing else on any screen navigates there.
+        val events = mutableListOf<HomeEvent>()
+        setContent(state(dashboard = dashboard()), onEvent = events::add)
+
+        composeRule.onNodeWithText("Clinics").performClick()
+
+        assertTrue(events.contains(HomeEvent.OpenFacilities))
+    }
+
+    @Test
+    fun theProfilesShelfIsTheWayIntoThePatientList() {
+        // Same regression: the chip row switches between profiles but cannot add
+        // or edit one, so without this the patient list was unreachable too.
+        val events = mutableListOf<HomeEvent>()
+        setContent(state(dashboard = dashboard()), onEvent = events::add)
+
+        composeRule.onNodeWithText("Profiles").performClick()
+
+        assertTrue(events.contains(HomeEvent.OpenPatients))
+    }
+
     private fun setContent(
         state: HomeUiState,
         onEvent: (HomeEvent) -> Unit = {},

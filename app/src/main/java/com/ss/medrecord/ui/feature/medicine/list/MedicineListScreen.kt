@@ -151,6 +151,7 @@ fun MedicineListScreen(
 
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         glow = MedTheme.colors.violet,
         topBar = {
             MedTopBar(

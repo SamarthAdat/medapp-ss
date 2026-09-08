@@ -23,10 +23,28 @@ import com.ss.medrecord.domain.model.TimelineEntry
 import com.ss.medrecord.domain.model.TimelineKind
 import com.ss.medrecord.domain.model.UpcomingAppointment
 import com.ss.medrecord.domain.sync.SyncStatusUi
+import com.ss.medrecord.core.location.Coordinates
+import com.ss.medrecord.domain.model.Facility
+import com.ss.medrecord.domain.model.FacilityType
+import com.ss.medrecord.domain.model.NearbyPlace
+import com.ss.medrecord.domain.model.Visit
 import com.ss.medrecord.ui.feature.consent.ConsentScreen
+import com.ss.medrecord.ui.feature.facility.detail.FacilityDetailScreen
+import com.ss.medrecord.ui.feature.facility.detail.FacilityDetailUiState
+import com.ss.medrecord.ui.feature.facility.list.FacilityListScreen
+import com.ss.medrecord.ui.feature.facility.list.FacilityListUiState
+import com.ss.medrecord.ui.feature.facility.nearby.NearbyScreen
+import com.ss.medrecord.ui.feature.facility.nearby.NearbyUiState
 import com.ss.medrecord.ui.feature.consent.ConsentUiState
+import com.ss.medrecord.domain.model.BloodGroup
+import com.ss.medrecord.domain.model.Gender
+import com.ss.medrecord.domain.model.MedicineFrequency
 import com.ss.medrecord.ui.feature.home.HomeScreen
 import com.ss.medrecord.ui.feature.home.HomeUiState
+import com.ss.medrecord.ui.feature.medicine.edit.MedicineEditScreen
+import com.ss.medrecord.ui.feature.medicine.edit.MedicineEditUiState
+import com.ss.medrecord.ui.feature.patient.edit.PatientEditScreen
+import com.ss.medrecord.ui.feature.patient.edit.PatientEditUiState
 import com.ss.medrecord.ui.feature.settings.SettingsScreen
 import com.ss.medrecord.ui.feature.settings.SettingsUiState
 import com.ss.medrecord.ui.feature.timeline.TimelineScreen
@@ -53,7 +71,11 @@ import java.time.LocalDate
  * Not an assertion of anything - it is a way to see a screen without a signed-in
  * account, a database or Firebase. Kept because the alternative is signing into
  * a real account with real records every time a colour or a spacing changes.
+ *
+ * Excluded from `connectedAndroidTest` by [ScreenshotOnly], which explains how
+ * to run it.
  */
+@ScreenshotOnly
 @RunWith(AndroidJUnit4::class)
 class DesignCaptureTest {
 
@@ -94,12 +116,176 @@ class DesignCaptureTest {
     }
 
     @Test
+    fun capturePatientEditDark() = capture("patient-edit-dark", dark = true) {
+        PatientEditScreen(
+            state = PatientEditUiState(
+                patientId = "p1",
+                name = "Asha Rao",
+                relationship = Relationship.SELF,
+                dateOfBirthEpochDay = TODAY.minusYears(41).toEpochDay(),
+                gender = Gender.entries.first(),
+                bloodGroup = BloodGroup.entries.first(),
+                knownAllergies = "Penicillin, sulfa drugs",
+            ),
+            onEvent = {},
+        )
+    }
+
+    @Test
+    fun capturePatientEditLight() = capture("patient-edit-light", dark = false) {
+        PatientEditScreen(
+            state = PatientEditUiState(name = "", nameError = "Enter a name"),
+            onEvent = {},
+        )
+    }
+
+    @Test
+    fun captureMedicineEditDark() = capture("medicine-edit-dark", dark = true) {
+        MedicineEditScreen(
+            state = MedicineEditUiState(
+                medicineId = "m1",
+                patients = listOf(asha, vikram),
+                selectedPatientId = "p1",
+                name = "Metformin",
+                dosage = "500 mg",
+                frequency = MedicineFrequency.DAILY,
+                reminderTimes = listOf(8 * 60, 20 * 60),
+                startDateEpochDay = TODAY.minusDays(30).toEpochDay(),
+                instructions = "After food, with water",
+            ),
+            onEvent = {},
+        )
+    }
+
+    @Test
     fun captureTimelineDark() = capture("timeline-dark", dark = true) {
         TimelineScreen(
             state = TimelineUiState(isLoading = false, allEntries = entries()),
             onEvent = {},
         )
     }
+
+    @Test
+    fun captureNearbyDark() = capture("nearby-dark", dark = true) {
+        NearbyScreen(state = nearbyResults(), onEvent = {}, showMap = false)
+    }
+
+    @Test
+    fun captureNearbyLight() = capture("nearby-light", dark = false) {
+        NearbyScreen(state = nearbyResults(), onEvent = {}, showMap = false)
+    }
+
+    @Test
+    fun captureNearbyBlockedDark() = capture("nearby-blocked-dark", dark = true) {
+        NearbyScreen(
+            state = NearbyUiState(hasLocationPermission = false),
+            onEvent = {},
+            showMap = false,
+        )
+    }
+
+    @Test
+    fun captureFacilityListDark() = capture("facilities-dark", dark = true) {
+        FacilityListScreen(state = facilityList(), onEvent = {}, showMap = false)
+    }
+
+    @Test
+    fun captureFacilityListLight() = capture("facilities-light", dark = false) {
+        FacilityListScreen(state = facilityList(), onEvent = {}, showMap = false)
+    }
+
+    @Test
+    fun captureFacilityDetailDark() = capture("facility-detail-dark", dark = true) {
+        FacilityDetailScreen(
+            state = FacilityDetailUiState(
+                isLoading = false,
+                facility = cityCare,
+                visits = listOf(
+                    Visit(
+                        visitId = "v1",
+                        userId = "u1",
+                        patientId = "p1",
+                        facilityId = "f1",
+                        doctorName = "Dr Mehta",
+                        visitDateEpochDay = TODAY.minusDays(20).toEpochDay(),
+                        createdAt = 0L,
+                        updatedAt = 0L,
+                    ),
+                ),
+            ),
+            onEvent = {},
+            showMap = false,
+        )
+    }
+
+    private fun nearbyResults() = NearbyUiState(
+        hasSearched = true,
+        hasLocationPermission = true,
+        origin = Coordinates(12.97, 77.59),
+        savedNames = setOf("city care clinic"),
+        results = listOf(
+            NearbyPlace(
+                placeId = "p1",
+                name = "Sunrise Hospital",
+                address = "44 Residency Road, Bengaluru",
+                coordinates = Coordinates(12.97, 77.60),
+                distanceMetres = 420.0,
+            ),
+            NearbyPlace(
+                placeId = "p2",
+                name = "City Care Clinic",
+                address = "12 MG Road, Bengaluru",
+                coordinates = Coordinates(12.98, 77.61),
+                distanceMetres = 2300.0,
+            ),
+            NearbyPlace(
+                placeId = "p3",
+                name = "Grace Multispeciality",
+                address = "9 Langford Road, Bengaluru",
+                coordinates = Coordinates(12.95, 77.60),
+                distanceMetres = 4100.0,
+            ),
+        ),
+    )
+
+    private fun facilityList() = FacilityListUiState(
+        isLoading = false,
+        facilities = listOf(
+            cityCare,
+            Facility(
+                facilityId = "f2",
+                userId = "u1",
+                name = "Sunrise Hospital",
+                type = FacilityType.HOSPITAL,
+                address = "44 Residency Road, Bengaluru",
+                latitude = 12.97,
+                longitude = 77.60,
+                createdAt = 0L,
+                updatedAt = 0L,
+            ),
+            Facility(
+                facilityId = "f3",
+                userId = "u1",
+                name = "Lister Diagnostics",
+                type = FacilityType.DIAGNOSTIC_CENTER,
+                createdAt = 0L,
+                updatedAt = 0L,
+            ),
+        ),
+    )
+
+    private val cityCare = Facility(
+        facilityId = "f1",
+        userId = "u1",
+        name = "City Care Clinic",
+        type = FacilityType.CLINIC,
+        address = "12 MG Road, Bengaluru",
+        phone = "+91 80 1234 5678",
+        latitude = 12.98,
+        longitude = 77.61,
+        createdAt = 0L,
+        updatedAt = 0L,
+    )
 
     private fun capture(name: String, dark: Boolean, content: @Composable () -> Unit) {
         composeRule.setContent {

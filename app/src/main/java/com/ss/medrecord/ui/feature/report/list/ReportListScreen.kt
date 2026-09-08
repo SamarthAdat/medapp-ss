@@ -96,6 +96,7 @@ fun ReportListScreen(
 
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         glow = MedTheme.colors.azure,
         topBar = {
             MedTopBar(

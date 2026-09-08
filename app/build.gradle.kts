@@ -53,6 +53,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // The screenshot captures render whole screens and grab full-size
+        // bitmaps; heavy enough to have crashed the instrumentation process
+        // once in a full run. They assert nothing, so they are kept out of the
+        // suite and run by name when a screen needs looking at. See
+        // androidTest/.../ScreenshotOnly.kt.
+        testInstrumentationRunnerArguments["notAnnotation"] =
+            "com.ss.medrecord.ui.ScreenshotOnly"
+
         // The Maps SDK reads its key from a manifest meta-data tag; the Places
         // SDK is initialised in code and needs it as a value. Neither is a
         // secret once the APK ships - Google's model for Android Maps keys is

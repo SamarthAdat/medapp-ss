@@ -1,44 +1,27 @@
 package com.ss.medrecord.ui.feature.visit.edit
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -47,13 +30,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.domain.model.Facility
 import com.ss.medrecord.domain.model.FacilityType
 import com.ss.medrecord.domain.validation.VisitValidator
-import com.ss.medrecord.ui.components.medFieldColors
-import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedCard
+import com.ss.medrecord.ui.components.MedDropdownField
+import com.ss.medrecord.ui.components.MedListRow
+import com.ss.medrecord.ui.components.MedPrimaryButton
 import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedSelectField
+import com.ss.medrecord.ui.components.MedTextField
 import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.components.medDatePickerColors
 import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
 import com.ss.medrecord.ui.theme.MedTheme
+import com.ss.medrecord.ui.theme.MedTypography
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -105,6 +94,7 @@ fun VisitEditScreen(
 
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         topBar = {
             MedTopBar(
                 title = if (state.isEditing) "Edit visit" else "Add visit",
@@ -121,13 +111,24 @@ fun VisitEditScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (state.patients.size > 1) {
-                PatientDropdown(state = state, onEvent = onEvent)
+                MedDropdownField(
+                    label = "Patient",
+                    options = state.patients,
+                    selected = state.selectedPatient,
+                    optionLabel = { "${it.name} · ${it.relationship.label}" },
+                    onSelected = { patient ->
+                        // Required: a visit with no patient has nowhere to be
+                        // filed, so a null here is ignored rather than written.
+                        patient?.let { onEvent(VisitEditEvent.PatientSelected(it.patientId)) }
+                    },
+                    enabled = !state.isSubmitting,
+                )
             } else {
                 state.selectedPatient?.let { patient ->
                     Text(
                         text = "Recording a visit for ${patient.name}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MedTheme.colors.textSecondary,
                     )
                 }
             }
@@ -137,9 +138,14 @@ fun VisitEditScreen(
             if (state.willCreateFacility) {
                 // Only relevant when a new clinic is about to be created; asking
                 // for a type on an existing one would be a pointless choice.
-                FacilityTypeDropdown(
+                MedDropdownField(
+                    label = "Type",
+                    options = FacilityType.entries,
                     selected = state.facilityType,
-                    onSelected = { onEvent(VisitEditEvent.FacilityTypeChanged(it)) },
+                    optionLabel = { it.label },
+                    onSelected = { type ->
+                        type?.let { onEvent(VisitEditEvent.FacilityTypeChanged(it)) }
+                    },
                     enabled = !state.isSubmitting,
                 )
             }
@@ -151,30 +157,24 @@ fun VisitEditScreen(
                 onOpen = { onEvent(VisitEditEvent.DatePickerRequested(VisitDateField.VISIT)) },
             )
 
-            OutlinedTextField(
-                colors = medFieldColors(),
-                shape = RoundedCornerShape(16.dp),
+            MedTextField(
                 value = state.doctorName,
                 onValueChange = { onEvent(VisitEditEvent.DoctorNameChanged(it)) },
-                label = { Text(text = "Doctor name (optional)") },
-                singleLine = true,
-                isError = state.doctorNameError != null,
-                supportingText = state.doctorNameError?.let { { Text(text = it) } },
+                label = "Doctor name (optional)",
+                placeholder = "e.g. Dr Mehta",
+                error = state.doctorNameError,
                 enabled = !state.isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
-                colors = medFieldColors(),
-                shape = RoundedCornerShape(16.dp),
+            MedTextField(
                 value = state.notes,
                 onValueChange = { onEvent(VisitEditEvent.NotesChanged(it)) },
-                label = { Text(text = "Diagnosis or notes (optional)") },
-                minLines = 3,
-                isError = state.notesError != null,
-                supportingText = state.notesError?.let { { Text(text = it) } },
+                label = "Diagnosis or notes (optional)",
+                placeholder = "What was said, what was ordered",
+                error = state.notesError,
                 enabled = !state.isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
+                singleLine = false,
+                minLines = 3,
             )
 
             DateField(
@@ -188,60 +188,16 @@ fun VisitEditScreen(
                 text = "Save the visit first. Reports and prescribed medicines are " +
                     "then attached from the visit record.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MedTheme.colors.textTertiary,
             )
 
-            Button(
+            MedPrimaryButton(
+                text = if (state.isEditing) "Save changes" else "Save visit",
                 onClick = { onEvent(VisitEditEvent.Submit) },
                 enabled = state.canSubmit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            ) {
-                if (state.isSubmitting) {
-                    Box(modifier = Modifier.size(20.dp)) {
-                        CircularProgressIndicator(strokeWidth = 2.dp)
-                    }
-                } else {
-                    Text(text = if (state.isEditing) "Save changes" else "Save visit")
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PatientDropdown(state: VisitEditUiState, onEvent: (VisitEditEvent) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { if (!state.isSubmitting) expanded = it },
-    ) {
-        OutlinedTextField(
-            colors = medFieldColors(),
-            shape = RoundedCornerShape(16.dp),
-            value = state.selectedPatient?.name.orEmpty(),
-            onValueChange = {},
-            readOnly = true,
-            enabled = !state.isSubmitting,
-            label = { Text(text = "Patient") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, !state.isSubmitting),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            state.patients.forEach { patient ->
-                DropdownMenuItem(
-                    text = { Text(text = "${patient.name} - ${patient.relationship.label}") },
-                    onClick = {
-                        onEvent(VisitEditEvent.PatientSelected(patient.patientId))
-                        expanded = false
-                    },
-                )
-            }
+                loading = state.isSubmitting,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
     }
 }
@@ -252,92 +208,51 @@ private fun PatientDropdown(state: VisitEditUiState, onEvent: (VisitEditEvent) -
  */
 @Composable
 private fun FacilityField(state: VisitEditUiState, onEvent: (VisitEditEvent) -> Unit) {
+    val colors = MedTheme.colors
     Column(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            colors = medFieldColors(),
-            shape = RoundedCornerShape(16.dp),
+        MedTextField(
             value = state.facilityName,
             onValueChange = { onEvent(VisitEditEvent.FacilityNameChanged(it)) },
-            label = { Text(text = "Clinic or hospital") },
-            singleLine = true,
-            isError = state.facilityError != null,
-            supportingText = {
-                when {
-                    state.facilityError != null -> Text(text = state.facilityError)
-                    state.willCreateFacility -> Text(text = "New - will be saved to your facilities")
-                    else -> Unit
-                }
-            },
+            label = "Clinic or hospital",
+            placeholder = "e.g. City Care Clinic",
+            error = state.facilityError,
             enabled = !state.isSubmitting,
-            modifier = Modifier.fillMaxWidth(),
+            // The suggestions belong to the field, so they go away with it.
+            // Left open, they sit over the next question down.
+            onFocusChange = { focused ->
+                if (!focused) onEvent(VisitEditEvent.FacilitySuggestionsDismissed)
+            },
         )
+
+        if (state.facilityError == null && state.willCreateFacility) {
+            Text(
+                text = "New · will be saved to your facilities",
+                style = MedTypography.monoCaption,
+                color = colors.jade,
+                modifier = Modifier.padding(start = 16.dp, top = 6.dp),
+            )
+        }
 
         val suggestions = state.facilitySuggestions
         if (state.showFacilitySuggestions && suggestions.isNotEmpty()) {
-            Card(
+            MedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
+                    .padding(top = 6.dp),
+                containerColor = colors.cardRaised,
+                contentPadding = PaddingValues(vertical = 4.dp),
             ) {
-                suggestions.take(MAX_SUGGESTIONS).forEachIndexed { index, facility ->
-                    if (index > 0) HorizontalDivider()
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onEvent(VisitEditEvent.FacilitySelected(facility)) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                    ) {
-                        Text(text = facility.name, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            text = facility.type.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                suggestions.take(MAX_SUGGESTIONS).forEach { facility ->
+                    MedListRow(
+                        title = facility.name,
+                        subtitle = facility.type.label,
+                        icon = MedIcons.LocalHospital,
+                        accent = colors.jade,
+                        showChevron = false,
+                        onClick = { onEvent(VisitEditEvent.FacilitySelected(facility)) },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                    )
                 }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FacilityTypeDropdown(
-    selected: FacilityType,
-    onSelected: (FacilityType) -> Unit,
-    enabled: Boolean,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { if (enabled) expanded = it },
-    ) {
-        OutlinedTextField(
-            colors = medFieldColors(),
-            shape = RoundedCornerShape(16.dp),
-            value = selected.label,
-            onValueChange = {},
-            readOnly = true,
-            enabled = enabled,
-            label = { Text(text = "Type") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            FacilityType.entries.forEach { type ->
-                DropdownMenuItem(
-                    text = { Text(text = type.label) },
-                    onClick = {
-                        onSelected(type)
-                        expanded = false
-                    },
-                )
             }
         }
     }
@@ -350,22 +265,13 @@ private fun DateField(
     error: String?,
     onOpen: () -> Unit,
 ) {
-    OutlinedTextField(
-        colors = medFieldColors(),
-        shape = RoundedCornerShape(16.dp),
-        value = epochDay?.let(::formatEpochDay) ?: "",
-        onValueChange = {},
-        label = { Text(text = label) },
-        readOnly = true,
-        enabled = false,
-        isError = error != null,
-        supportingText = error?.let { { Text(text = it) } },
-        trailingIcon = {
-            TextButton(onClick = onOpen) {
-                Text(text = if (epochDay == null) "Set" else "Change")
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
+    MedSelectField(
+        value = epochDay?.let(::formatEpochDay),
+        label = label,
+        placeholder = "Not set",
+        icon = MedIcons.Event,
+        error = error,
+        onClick = onOpen,
     )
 }
 
@@ -400,6 +306,7 @@ private fun VisitDatePicker(
 
     DatePickerDialog(
         onDismissRequest = onDismiss,
+        colors = medDatePickerColors(),
         confirmButton = {
             TextButton(
                 onClick = {
@@ -420,7 +327,7 @@ private fun VisitDatePicker(
             TextButton(onClick = { onSelected(null) }) { Text(text = "Clear") }
         },
     ) {
-        DatePicker(state = pickerState)
+        DatePicker(state = pickerState, colors = medDatePickerColors())
     }
 }
 

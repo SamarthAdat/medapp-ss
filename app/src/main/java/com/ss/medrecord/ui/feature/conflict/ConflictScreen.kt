@@ -90,6 +90,7 @@ fun ConflictScreen(
 ) {
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         glow = MedTheme.colors.coral,
         topBar = {
             MedTopBar(

@@ -42,8 +42,7 @@ class HomeViewModel @Inject constructor(
 
     override fun onEvent(event: HomeEvent) {
         when (event) {
-            HomeEvent.OpenPatients, HomeEvent.SwitchPatient ->
-                sendEffect(HomeEffect.NavigateToPatients)
+            HomeEvent.OpenPatients -> sendEffect(HomeEffect.NavigateToPatients)
 
             // Changing the selection is enough on its own: every patient-scoped
             // flow is derived from it, so the dashboard redraws without this

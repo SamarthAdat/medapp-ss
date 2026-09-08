@@ -1,41 +1,26 @@
 package com.ss.medrecord.ui.feature.patient.edit
 
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -44,10 +29,13 @@ import com.ss.medrecord.domain.model.BloodGroup
 import com.ss.medrecord.domain.model.Gender
 import com.ss.medrecord.domain.model.Relationship
 import com.ss.medrecord.domain.validation.PatientValidator
-import com.ss.medrecord.ui.components.medFieldColors
-import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedDropdownField
+import com.ss.medrecord.ui.components.MedPrimaryButton
 import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedSelectField
+import com.ss.medrecord.ui.components.MedTextField
 import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.components.medDatePickerColors
 import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
 import com.ss.medrecord.ui.theme.MedTheme
@@ -98,6 +86,7 @@ fun PatientEditScreen(
 
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         topBar = {
             MedTopBar(
                 title = if (state.isEditing) "Edit patient" else "Add patient",
@@ -113,210 +102,92 @@ fun PatientEditScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            LabelledTextField(
+            MedTextField(
                 value = state.name,
                 onValueChange = { onEvent(PatientEditEvent.NameChanged(it)) },
                 label = "Full name",
-                errorMessage = state.nameError,
+                placeholder = "Who these records belong to",
+                error = state.nameError,
                 enabled = !state.isSubmitting,
             )
 
-            EnumDropdown(
+            MedDropdownField(
                 label = "Relationship",
                 options = Relationship.entries,
                 selected = state.relationship,
                 optionLabel = { it.label },
-                onSelected = { onEvent(PatientEditEvent.RelationshipChanged(it)) },
+                onSelected = { relationship ->
+                    // Required, so the dropdown offers no empty option and a
+                    // null can only arrive from a bug - ignored rather than
+                    // written over a valid choice.
+                    relationship?.let { onEvent(PatientEditEvent.RelationshipChanged(it)) }
+                },
                 enabled = !state.isSubmitting,
             )
 
-            // Read-only field that opens the picker: free-typed dates are a
-            // reliable source of ambiguous day/month entry.
-            OutlinedTextField(
-                colors = medFieldColors(),
-                shape = RoundedCornerShape(16.dp),
-                value = state.dateOfBirthEpochDay?.let(::formatEpochDay) ?: "",
-                onValueChange = {},
-                label = { Text(text = "Date of birth (optional)") },
-                readOnly = true,
-                enabled = false,
-                isError = state.dateOfBirthError != null,
-                supportingText = state.dateOfBirthError?.let { { Text(text = it) } },
-                trailingIcon = {
-                    TextButton(onClick = { onEvent(PatientEditEvent.DatePickerRequested) }) {
-                        Text(text = if (state.dateOfBirthEpochDay == null) "Set" else "Change")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
+            // Tapped rather than typed: free-typed dates are a reliable source
+            // of ambiguous day/month entry.
+            MedSelectField(
+                value = state.dateOfBirthEpochDay?.let(::formatEpochDay),
+                label = "Date of birth (optional)",
+                placeholder = "Not recorded",
+                icon = MedIcons.Event,
+                error = state.dateOfBirthError,
+                enabled = !state.isSubmitting,
+                onClick = { onEvent(PatientEditEvent.DatePickerRequested) },
             )
 
-            NullableEnumDropdown(
+            MedDropdownField(
                 label = "Gender (optional)",
                 options = Gender.entries,
                 selected = state.gender,
                 optionLabel = { it.label },
                 onSelected = { onEvent(PatientEditEvent.GenderChanged(it)) },
                 enabled = !state.isSubmitting,
+                placeholder = "Not recorded",
+                emptyOption = "Not recorded",
             )
 
-            NullableEnumDropdown(
+            MedDropdownField(
                 label = "Blood group (optional)",
                 options = BloodGroup.entries,
                 selected = state.bloodGroup,
                 optionLabel = { it.label },
                 onSelected = { onEvent(PatientEditEvent.BloodGroupChanged(it)) },
                 enabled = !state.isSubmitting,
+                placeholder = "Not recorded",
+                emptyOption = "Not recorded",
             )
 
-            LabelledTextField(
+            MedTextField(
                 value = state.knownAllergies,
                 onValueChange = { onEvent(PatientEditEvent.AllergiesChanged(it)) },
                 label = "Known allergies (optional)",
-                errorMessage = state.allergiesError,
+                // Phrased as an instruction, not an example. A plausible allergy sitting
+                // grey in an empty field is one somebody can read as recorded,
+                // and this is the field where that mistake costs the most.
+                placeholder = "Type any known allergies",
+                error = state.allergiesError,
                 enabled = !state.isSubmitting,
                 singleLine = false,
+                minLines = 3,
+                imeAction = ImeAction.Done,
             )
 
             Text(
-                text = "Profile photos are not stored yet. Reports and scans attach to a visit rather than to a profile.",
+                text = "Profile photos are not stored yet. Reports and scans attach " +
+                    "to a visit rather than to a profile.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MedTheme.colors.textTertiary,
             )
 
-            Button(
+            MedPrimaryButton(
+                text = if (state.isEditing) "Save changes" else "Add patient",
                 onClick = { onEvent(PatientEditEvent.Submit) },
                 enabled = state.canSubmit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            ) {
-                if (state.isSubmitting) {
-                    Box(modifier = Modifier.size(20.dp)) {
-                        CircularProgressIndicator(strokeWidth = 2.dp)
-                    }
-                } else {
-                    Text(text = if (state.isEditing) "Save changes" else "Add patient")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LabelledTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    errorMessage: String?,
-    enabled: Boolean,
-    singleLine: Boolean = true,
-) {
-    OutlinedTextField(
-        colors = medFieldColors(),
-        shape = RoundedCornerShape(16.dp),
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(text = label) },
-        singleLine = singleLine,
-        minLines = if (singleLine) 1 else 3,
-        isError = errorMessage != null,
-        enabled = enabled,
-        supportingText = errorMessage?.let { { Text(text = it) } },
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun <T> EnumDropdown(
-    label: String,
-    options: List<T>,
-    selected: T,
-    optionLabel: (T) -> String,
-    onSelected: (T) -> Unit,
-    enabled: Boolean,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { if (enabled) expanded = it },
-    ) {
-        OutlinedTextField(
-            colors = medFieldColors(),
-            shape = RoundedCornerShape(16.dp),
-            value = optionLabel(selected),
-            onValueChange = {},
-            readOnly = true,
-            enabled = enabled,
-            label = { Text(text = label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = optionLabel(option)) },
-                    onClick = {
-                        onSelected(option)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun <T> NullableEnumDropdown(
-    label: String,
-    options: List<T>,
-    selected: T?,
-    optionLabel: (T) -> String,
-    onSelected: (T?) -> Unit,
-    enabled: Boolean,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { if (enabled) expanded = it },
-    ) {
-        OutlinedTextField(
-            colors = medFieldColors(),
-            shape = RoundedCornerShape(16.dp),
-            value = selected?.let(optionLabel) ?: "",
-            onValueChange = {},
-            readOnly = true,
-            enabled = enabled,
-            label = { Text(text = label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            // An explicit way back to "not recorded", since these fields are
-            // optional and a mis-tap would otherwise be permanent.
-            DropdownMenuItem(
-                text = { Text(text = "Not recorded") },
-                onClick = {
-                    onSelected(null)
-                    expanded = false
-                },
+                loading = state.isSubmitting,
+                modifier = Modifier.padding(top = 8.dp),
             )
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = optionLabel(option)) },
-                    onClick = {
-                        onSelected(option)
-                        expanded = false
-                    },
-                )
-            }
         }
     }
 }
@@ -348,6 +219,7 @@ private fun DateOfBirthPicker(
 
     DatePickerDialog(
         onDismissRequest = onDismiss,
+        colors = medDatePickerColors(),
         confirmButton = {
             TextButton(
                 onClick = {
@@ -368,7 +240,7 @@ private fun DateOfBirthPicker(
             TextButton(onClick = { onSelected(null) }) { Text(text = "Clear") }
         },
     ) {
-        DatePicker(state = pickerState)
+        DatePicker(state = pickerState, colors = medDatePickerColors())
     }
 }
 

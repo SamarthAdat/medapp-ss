@@ -46,6 +46,7 @@ import com.ss.medrecord.domain.model.TimelineKind
 import com.ss.medrecord.domain.model.UpcomingAppointment
 import com.ss.medrecord.ui.components.AdherenceRing
 import com.ss.medrecord.ui.components.HeroCard
+import com.ss.medrecord.ui.components.IconTile
 import com.ss.medrecord.ui.components.MedCard
 import com.ss.medrecord.ui.components.MedEmptyState
 import com.ss.medrecord.ui.components.MedIconButton
@@ -189,6 +190,8 @@ fun HomeScreen(
                     }
 
                     item { CountsRow(counts = dashboard.counts, onEvent = onEvent) }
+
+                    item { LibraryRow(dashboard = dashboard, onEvent = onEvent) }
 
                     if (dashboard.recentActivity.isNotEmpty()) {
                         item {
@@ -537,6 +540,81 @@ private fun CountsRow(counts: RecordCounts, onEvent: (HomeEvent) -> Unit) {
             onClick = { onEvent(HomeEvent.OpenMedicines) },
             modifier = Modifier.weight(1f),
         )
+    }
+}
+
+/**
+ * The two shelves the counts above do not cover: the people the records belong
+ * to, and the places they were made.
+ *
+ * They are here because there is nowhere else. The bottom bar is four daily
+ * destinations and the header is one button, so without this row the patient
+ * list and the whole facilities feature - saved clinics, the map, find nearby -
+ * had no way in at all once a first patient existed.
+ */
+@Composable
+private fun LibraryRow(dashboard: DashboardSnapshot, onEvent: (HomeEvent) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        ShelfTile(
+            title = "Profiles",
+            subtitle = if (dashboard.patientCount == 1) {
+                "1 person"
+            } else {
+                "${dashboard.patientCount} people"
+            },
+            icon = MedIcons.Person,
+            accent = MedTheme.colors.azure,
+            onClick = { onEvent(HomeEvent.OpenPatients) },
+            modifier = Modifier.weight(1f),
+        )
+        ShelfTile(
+            title = "Clinics",
+            subtitle = "Saved and nearby",
+            icon = MedIcons.LocalHospital,
+            accent = MedTheme.colors.jade,
+            onClick = { onEvent(HomeEvent.OpenFacilities) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ShelfTile(
+    title: String,
+    subtitle: String,
+    icon: com.ss.medrecord.ui.theme.MedIcon,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MedTheme.colors
+    MedCard(
+        modifier = modifier,
+        onClick = onClick,
+        contentPadding = PaddingValues(14.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            IconTile(icon = icon, accent = accent, size = 36.dp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.textPrimary,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.textSecondary,
+                )
+            }
+        }
     }
 }
 

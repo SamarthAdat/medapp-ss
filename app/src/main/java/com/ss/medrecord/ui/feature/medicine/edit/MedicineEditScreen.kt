@@ -1,49 +1,41 @@
 package com.ss.medrecord.ui.feature.medicine.edit
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -53,13 +45,22 @@ import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.MedicineFrequency
 import com.ss.medrecord.domain.model.VisitWithFacility
 import com.ss.medrecord.domain.validation.MedicineValidator
-import com.ss.medrecord.ui.components.medFieldColors
-import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedCard
+import com.ss.medrecord.ui.components.MedDropdownField
+import com.ss.medrecord.ui.components.MedFilterChip
+import com.ss.medrecord.ui.components.MedIconGlyph
+import com.ss.medrecord.ui.components.MedPrimaryButton
 import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedSelectField
+import com.ss.medrecord.ui.components.MedTextField
 import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.components.SectionLabel
+import com.ss.medrecord.ui.components.medDatePickerColors
+import com.ss.medrecord.ui.components.medTimePickerColors
 import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
 import com.ss.medrecord.ui.theme.MedTheme
+import com.ss.medrecord.ui.theme.MedTypography
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -119,6 +120,7 @@ fun MedicineEditScreen(
 
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         glow = MedTheme.colors.violet,
         topBar = {
             MedTopBar(
@@ -127,42 +129,42 @@ fun MedicineEditScreen(
             )
         },
     ) { innerPadding ->
+        val colors = MedTheme.colors
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            PatientSelector(state = state, onEvent = onEvent)
+            MedDropdownField(
+                label = "Patient",
+                options = state.patients,
+                selected = state.selectedPatient,
+                optionLabel = { it.name },
+                onSelected = { patient ->
+                    // Required: a medicine with no patient has nowhere to be
+                    // filed, so a null is ignored rather than written.
+                    patient?.let { onEvent(MedicineEditEvent.PatientSelected(it.patientId)) }
+                },
+            )
 
-            OutlinedTextField(
-                colors = medFieldColors(),
-                shape = RoundedCornerShape(16.dp),
+            MedTextField(
                 value = state.name,
                 onValueChange = { onEvent(MedicineEditEvent.NameChanged(it)) },
-                label = { Text(text = "Medicine name") },
-                singleLine = true,
-                isError = state.nameError != null,
-                supportingText = state.nameError?.let { { Text(text = it) } },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Medicine name",
+                placeholder = "e.g. Metformin",
+                error = state.nameError,
             )
 
-            OutlinedTextField(
-                colors = medFieldColors(),
-                shape = RoundedCornerShape(16.dp),
+            MedTextField(
                 value = state.dosage,
                 onValueChange = { onEvent(MedicineEditEvent.DosageChanged(it)) },
-                label = { Text(text = "Dosage") },
-                placeholder = { Text(text = "500 mg, 1 tablet, 5 ml") },
-                singleLine = true,
-                isError = state.dosageError != null,
-                supportingText = state.dosageError?.let { { Text(text = it) } },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Dosage",
+                placeholder = "e.g. 500 mg, 1 tablet, 5 ml",
+                error = state.dosageError,
             )
-
-            HorizontalDivider()
 
             FrequencySelector(state = state, onEvent = onEvent)
 
@@ -189,147 +191,80 @@ fun MedicineEditScreen(
                 },
             )
 
-            OutlinedTextField(
-                colors = medFieldColors(),
-                shape = RoundedCornerShape(16.dp),
+            MedTextField(
                 value = state.instructions,
                 onValueChange = { onEvent(MedicineEditEvent.InstructionsChanged(it)) },
-                label = { Text(text = "Instructions") },
-                placeholder = { Text(text = "After food, with water") },
+                label = "Instructions",
+                placeholder = "e.g. after food, with water",
+                error = state.instructionsError,
+                singleLine = false,
                 minLines = 2,
-                isError = state.instructionsError != null,
-                supportingText = state.instructionsError?.let { { Text(text = it) } },
-                modifier = Modifier.fillMaxWidth(),
             )
 
-            HorizontalDivider()
+            MedDropdownField(
+                label = "Prescribed at",
+                options = state.visits,
+                selected = state.selectedVisit,
+                optionLabel = { visitLabel(it) },
+                onSelected = { visit ->
+                    onEvent(MedicineEditEvent.VisitSelected(visit?.visit?.visitId))
+                },
+                placeholder = NOT_FROM_A_VISIT,
+                // The first option, not an afterthought: most of what a family
+                // takes was never prescribed at an appointment this app knows
+                // about, and a form that insists otherwise invites a wrong link.
+                emptyOption = NOT_FROM_A_VISIT,
+            )
 
-            VisitSelector(state = state, onEvent = onEvent)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Currently taking", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        text = "Turn this off to pause reminders without losing the record.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            MedCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Currently taking",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colors.textPrimary,
+                        )
+                        Text(
+                            text = "Turn this off to pause reminders without losing " +
+                                "the record.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textSecondary,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(
+                        checked = state.isActive,
+                        onCheckedChange = { onEvent(MedicineEditEvent.ActiveChanged(it)) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = colors.onViolet,
+                            checkedTrackColor = colors.violet,
+                            uncheckedTrackColor = colors.cardHighest,
+                            uncheckedBorderColor = colors.hairlineStrong,
+                        ),
                     )
                 }
-                Switch(
-                    checked = state.isActive,
-                    onCheckedChange = { onEvent(MedicineEditEvent.ActiveChanged(it)) },
-                )
             }
 
             Text(
                 text = state.scheduleSummary,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MedTypography.monoCaption,
+                color = colors.textTertiary,
             )
 
-            Button(
+            MedPrimaryButton(
+                text = if (state.isEditing) "Save changes" else "Add medicine",
                 onClick = { onEvent(MedicineEditEvent.Submit) },
                 enabled = state.canSubmit,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (state.isSubmitting) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                } else {
-                    Text(text = if (state.isEditing) "Save changes" else "Add medicine")
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PatientSelector(
-    state: MedicineEditUiState,
-    onEvent: (MedicineEditEvent) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-    ) {
-        OutlinedTextField(
-            colors = medFieldColors(),
-            shape = RoundedCornerShape(16.dp),
-            value = state.selectedPatient?.name.orEmpty(),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(text = "Patient") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            state.patients.forEach { patient ->
-                DropdownMenuItem(
-                    text = { Text(text = patient.name) },
-                    onClick = {
-                        onEvent(MedicineEditEvent.PatientSelected(patient.patientId))
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun VisitSelector(
-    state: MedicineEditUiState,
-    onEvent: (MedicineEditEvent) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-        ) {
-            OutlinedTextField(
-                colors = medFieldColors(),
-                shape = RoundedCornerShape(16.dp),
-                value = state.selectedVisit?.let { visitLabel(it) } ?: "Not from a logged visit",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(text = "Prescribed at") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                loading = state.isSubmitting,
+                container = colors.violet,
+                onContainer = colors.onViolet,
+                modifier = Modifier.padding(top = 4.dp),
             )
-            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                // The first option, not an afterthought: most of what a family
-                // takes was never prescribed at an appointment this app knows
-                // about, and a form that insists otherwise invites a wrong link.
-                DropdownMenuItem(
-                    text = { Text(text = "Not from a logged visit") },
-                    onClick = {
-                        onEvent(MedicineEditEvent.VisitSelected(null))
-                        expanded = false
-                    },
-                )
-                state.visits.forEach { visit ->
-                    DropdownMenuItem(
-                        text = { Text(text = visitLabel(visit)) },
-                        onClick = {
-                            onEvent(MedicineEditEvent.VisitSelected(visit.visit.visitId))
-                            expanded = false
-                        },
-                    )
-                }
-            }
         }
     }
 }
@@ -339,14 +274,18 @@ private fun FrequencySelector(
     state: MedicineEditUiState,
     onEvent: (MedicineEditEvent) -> Unit,
 ) {
-    Column {
-        Text(text = "How often", style = MaterialTheme.typography.labelMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionLabel("How often")
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             MedicineFrequency.entries.forEach { frequency ->
-                FilterChip(
+                MedFilterChip(
+                    text = frequency.label,
                     selected = state.frequency == frequency,
                     onClick = { onEvent(MedicineEditEvent.FrequencyChanged(frequency)) },
-                    label = { Text(text = frequency.label) },
+                    accent = MedTheme.colors.violet,
                 )
             }
         }
@@ -358,41 +297,65 @@ private fun DoseTimes(
     state: MedicineEditUiState,
     onEvent: (MedicineEditEvent) -> Unit,
 ) {
-    Column {
+    val colors = MedTheme.colors
+    val canAddMore = state.times.size < MedicineValidator.MAX_TIMES_PER_DAY
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = "Reminder times", style = MaterialTheme.typography.labelMedium)
-            TextButton(
-                onClick = { onEvent(MedicineEditEvent.TimePickerRequested) },
-                enabled = state.times.size < MedicineValidator.MAX_TIMES_PER_DAY,
-            ) {
-                Text(text = "Add time")
-            }
+            SectionLabel("Reminder times")
+            Text(
+                text = "Add time",
+                style = MaterialTheme.typography.titleSmall,
+                color = if (canAddMore) colors.violet else colors.textTertiary,
+                modifier = Modifier.clickable(enabled = canAddMore) {
+                    onEvent(MedicineEditEvent.TimePickerRequested)
+                },
+            )
         }
 
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             state.times.forEach { minutes ->
-                AssistChip(
-                    onClick = { onEvent(MedicineEditEvent.TimeRemoved(minutes)) },
-                    label = {
-                        Text(text = Medicine.formatTime(Medicine.minutesToTime(minutes)))
-                    },
-                    trailingIcon = { Text(text = "×") },
-                )
+                // The whole chip removes the time, which is why the cross is
+                // decoration rather than a second, smaller tap target.
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(colors.violet.copy(alpha = 0.14f))
+                        .border(
+                            1.dp,
+                            colors.violet.copy(alpha = 0.30f),
+                            RoundedCornerShape(percent = 50),
+                        )
+                        .clickable { onEvent(MedicineEditEvent.TimeRemoved(minutes)) }
+                        .padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = Medicine.formatTime(Medicine.minutesToTime(minutes)),
+                        style = MedTypography.monoNumber,
+                        color = colors.textPrimary,
+                    )
+                    MedIconGlyph(
+                        icon = MedIcons.Close,
+                        size = 16.dp,
+                        tint = colors.violet,
+                        contentDescription = "Remove this time",
+                    )
+                }
             }
         }
 
         Text(
             text = state.timesError ?: "Tap a time to remove it.",
             style = MaterialTheme.typography.bodySmall,
-            color = if (state.timesError != null) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
+            color = if (state.timesError != null) colors.coral else colors.textTertiary,
         )
     }
 }
@@ -405,30 +368,30 @@ private fun DateField(
     onOpen: () -> Unit,
     onClear: (() -> Unit)? = null,
 ) {
-    OutlinedTextField(
-        colors = medFieldColors(),
-        shape = RoundedCornerShape(16.dp),
-        value = epochDay?.let { LocalDate.ofEpochDay(it).format(DATE_FORMAT) } ?: "",
-        onValueChange = {},
-        label = { Text(text = label) },
-        readOnly = true,
-        // Disabled rather than merely read-only, so the field can never take
-        // focus and open a keyboard on a value only the picker can set.
-        enabled = false,
-        isError = error != null,
-        supportingText = error?.let { { Text(text = it) } },
-        trailingIcon = {
-            Row {
-                if (onClear != null && epochDay != null) {
-                    TextButton(onClick = onClear) { Text(text = "Clear") }
-                }
-                TextButton(onClick = onOpen) {
-                    Text(text = if (epochDay == null) "Set" else "Change")
-                }
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-    )
+    val colors = MedTheme.colors
+    Column {
+        MedSelectField(
+            value = epochDay?.let { LocalDate.ofEpochDay(it).format(DATE_FORMAT) },
+            label = label,
+            placeholder = "Not set",
+            icon = MedIcons.Event,
+            error = error,
+            onClick = onOpen,
+        )
+        // Clearing is offered below rather than as a second control inside the
+        // field: two tap targets in one row on a date the picker owns is how
+        // people clear a value they meant to change.
+        if (onClear != null && epochDay != null) {
+            Text(
+                text = "Clear",
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.textSecondary,
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 6.dp)
+                    .clickable(onClick = onClear),
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -445,6 +408,7 @@ private fun MedicineDatePicker(
 
     DatePickerDialog(
         onDismissRequest = onDismiss,
+        colors = medDatePickerColors(),
         confirmButton = {
             TextButton(
                 onClick = {
@@ -501,7 +465,7 @@ private fun DoseTimePicker(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 12.dp),
                 )
-                TimePicker(state = pickerState)
+                TimePicker(state = pickerState, colors = medTimePickerColors())
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -517,6 +481,9 @@ private fun DoseTimePicker(
         }
     }
 }
+
+/** One string, so the placeholder and the empty option cannot drift apart. */
+private const val NOT_FROM_A_VISIT = "Not from a logged visit"
 
 private fun visitLabel(visit: VisitWithFacility): String =
     "${visit.facilityName} · ${visit.visit.visitDate.format(DATE_FORMAT)}"

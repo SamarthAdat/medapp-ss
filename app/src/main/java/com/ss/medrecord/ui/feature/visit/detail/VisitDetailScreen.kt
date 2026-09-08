@@ -104,6 +104,7 @@ fun VisitDetailScreen(
 ) {
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         topBar = {
             MedTopBar(
                 title = "Visit",

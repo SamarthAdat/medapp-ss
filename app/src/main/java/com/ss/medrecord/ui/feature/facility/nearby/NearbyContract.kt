@@ -22,12 +22,18 @@ data class NearbyUiState(
     val results: List<NearbyPlace> = emptyList(),
     val searchType: PlaceSearchType = PlaceSearchType.HOSPITAL,
     val isSearching: Boolean = false,
-    val isMapView: Boolean = false,
     val hasSearched: Boolean = false,
     val isMapsConfigured: Boolean = true,
     val hasLocationPermission: Boolean = false,
     val isLocationEnabled: Boolean = true,
     val savingPlaceId: String? = null,
+    /**
+     * Names of the clinics already on this account, lowercased. Google has no
+     * idea which of its places the user has been to, so the only way to stop
+     * the same clinic being saved twice is to compare what it returns against
+     * what is already filed here.
+     */
+    val savedNames: Set<String> = emptySet(),
     val errorMessage: String? = null,
 ) : UiState {
 
@@ -38,6 +44,8 @@ data class NearbyUiState(
 
     /** Only results Google gave coordinates for can be pinned. */
     val mappable: List<NearbyPlace> get() = results.filter { it.coordinates != null }
+
+    fun isSaved(place: NearbyPlace): Boolean = place.name.lowercase() in savedNames
 
     /**
      * Which of the three possible blockers to explain. Ordered by what the user
@@ -62,7 +70,6 @@ sealed interface NearbyEvent : UiEvent {
     data class PlaceClicked(val place: NearbyPlace) : NearbyEvent
     data object GrantLocationClicked : NearbyEvent
     data object EnableLocationClicked : NearbyEvent
-    data object ToggleMapView : NearbyEvent
     /** Re-read after a permission dialog or a trip to settings. */
     data object PermissionsRechecked : NearbyEvent
     data object BackClicked : NearbyEvent

@@ -1,6 +1,5 @@
 package com.ss.medrecord.ui.feature.facility.detail
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,39 +10,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.core.location.Coordinates
-import com.ss.medrecord.core.ui.components.FullScreenLoading
 import com.ss.medrecord.domain.model.Facility
 import com.ss.medrecord.domain.model.FacilityType
 import com.ss.medrecord.domain.model.Visit
 import com.ss.medrecord.ui.components.FacilityMap
 import com.ss.medrecord.ui.components.MapPin
-import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedCard
+import com.ss.medrecord.ui.components.MedDetailRow
+import com.ss.medrecord.ui.components.MedEmptyState
+import com.ss.medrecord.ui.components.MedListRow
+import com.ss.medrecord.ui.components.MedLoading
+import com.ss.medrecord.ui.components.MedOutlineButton
 import com.ss.medrecord.ui.components.MedScreen
 import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.components.SectionHeader
 import com.ss.medrecord.ui.components.openDialer
 import com.ss.medrecord.ui.components.openDirections
 import com.ss.medrecord.ui.theme.MedIcons
@@ -98,19 +94,26 @@ fun FacilityDetailRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * [showMap] exists for the screen tests, for the same reason as on the nearby
+ * screen: the map is a real MapView and needs Play services and a GL surface.
+ */
 @Composable
 fun FacilityDetailScreen(
     state: FacilityDetailUiState,
     onEvent: (FacilityDetailEvent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    showMap: Boolean = true,
 ) {
+    val colors = MedTheme.colors
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         topBar = {
             MedTopBar(
                 title = state.facility?.name ?: "Facility",
+                subtitle = state.facility?.type?.label,
                 onBack = { onEvent(FacilityDetailEvent.BackClicked) },
             )
         },
@@ -118,23 +121,23 @@ fun FacilityDetailScreen(
         val facility = state.facility
 
         when {
-            state.isLoading -> FullScreenLoading(modifier = Modifier.padding(innerPadding))
+            state.isLoading -> MedLoading(modifier = Modifier.padding(innerPadding))
 
-            facility == null -> Text(
-                text = "This facility is no longer available.",
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .padding(24.dp),
+            facility == null -> MedEmptyState(
+                title = "This facility is gone",
+                message = "It was deleted, or it belongs to another account.",
+                icon = MedIcons.LocalHospital,
+                modifier = Modifier.padding(innerPadding),
             )
 
             else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (state.hasLocation) {
+                if (state.hasLocation && showMap) {
                     item {
                         FacilityMap(
                             pins = listOf(
@@ -150,35 +153,30 @@ fun FacilityDetailScreen(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp),
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(20.dp)),
                         )
                     }
                 }
 
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        ),
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = facility.type.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                    MedCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             state.address?.let { address ->
-                                Text(text = address, style = MaterialTheme.typography.bodyMedium)
+                                MedDetailRow(label = "Address", value = address)
                             }
                             state.phone?.let { phone ->
-                                Text(text = phone, style = MaterialTheme.typography.bodyMedium)
+                                MedDetailRow(label = "Phone", value = phone)
                             }
                             facility.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                                MedDetailRow(label = "Notes", value = notes)
+                            }
+                            if (state.address == null && state.phone == null) {
                                 Text(
-                                    text = notes,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(top = 4.dp),
+                                    text = "Only a name is on file. Saving this clinic " +
+                                        "from a nearby search fills in the rest.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.textSecondary,
                                 )
                             }
                         }
@@ -188,32 +186,29 @@ fun FacilityDetailScreen(
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        OutlinedButton(
+                        MedOutlineButton(
+                            text = "Directions",
+                            icon = MedIcons.Directions,
                             onClick = { onEvent(FacilityDetailEvent.DirectionsClicked) },
+                            enabled = state.hasLocation,
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text(text = "Directions")
-                        }
-                        OutlinedButton(
+                        )
+                        MedOutlineButton(
+                            text = "Call",
+                            icon = MedIcons.Call,
                             onClick = { onEvent(FacilityDetailEvent.CallClicked) },
                             enabled = state.phone != null,
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text(text = "Call")
-                        }
+                        )
                     }
                 }
 
                 item {
-                    Text(
-                        text = if (state.visits.isEmpty()) {
-                            "Visits here"
-                        } else {
-                            "Visits here (${state.visits.size})"
-                        },
-                        style = MaterialTheme.typography.titleMedium,
+                    SectionHeader(
+                        title = "Visits here",
+                        trailing = state.visits.size.toString().takeIf { state.visits.isNotEmpty() },
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
@@ -222,44 +217,29 @@ fun FacilityDetailScreen(
                     item {
                         Text(
                             text = "No visits logged at this place yet.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textSecondary,
                         )
                     }
                 }
 
                 items(state.visits, key = { it.visitId }) { visit ->
-                    VisitRow(
-                        visit = visit,
+                    MedCard(
                         onClick = { onEvent(FacilityDetailEvent.VisitClicked(visit)) },
-                    )
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp),
+                    ) {
+                        MedListRow(
+                            title = LocalDate.ofEpochDay(visit.visitDateEpochDay)
+                                .format(DATE_FORMAT),
+                            subtitle = visit.doctorName?.takeIf { it.isNotBlank() },
+                            icon = MedIcons.Stethoscope,
+                            accent = colors.jade,
+                            showChevron = true,
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun VisitRow(visit: Visit, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-    ) {
-        Text(
-            text = LocalDate.ofEpochDay(visit.visitDateEpochDay).format(DATE_FORMAT),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-        )
-        visit.doctorName?.takeIf { it.isNotBlank() }?.let { doctor ->
-            Text(
-                text = doctor,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -270,6 +250,7 @@ private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM 
 private fun FacilityDetailScreenPreview() {
     MedRecordTheme {
         FacilityDetailScreen(
+            showMap = false,
             state = FacilityDetailUiState(
                 isLoading = false,
                 facility = Facility(

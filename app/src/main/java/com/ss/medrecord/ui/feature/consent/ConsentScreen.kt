@@ -92,6 +92,7 @@ fun ConsentScreen(
     val colors = MedTheme.colors
     MedScreen(
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         topBar = {
             MedTopBar(
                 title = if (state.isReconsent) "Updated consent" else "Before you begin",

@@ -1,10 +1,12 @@
 package com.ss.medrecord.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,18 +24,31 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePickerColors
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TimePickerColors
+import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,29 +59,24 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.platform.LocalDensity
+import com.ss.medrecord.ui.theme.MaterialSymbols
 import com.ss.medrecord.ui.theme.MedIcon
 import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedTheme
 import com.ss.medrecord.ui.theme.MedTypography
-import com.ss.medrecord.ui.theme.MaterialSymbols
 
 /**
  * The vocabulary every screen is built from.
@@ -206,6 +216,7 @@ fun MedScreen(
     topBar: @Composable () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
+    snackbarHostState: SnackbarHostState? = null,
     glow: Color? = MedTheme.colors.jade,
     content: @Composable (PaddingValues) -> Unit,
 ) {
@@ -241,6 +252,11 @@ fun MedScreen(
             topBar = topBar,
             bottomBar = bottomBar,
             floatingActionButton = floatingActionButton,
+            // Nullable rather than always-on: a screen that emits no messages
+            // should not carry a host, and a screen that does emit them must
+            // not be able to forget one. Every ShowMessage effect in the app
+            // lands here.
+            snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
             content = content,
         )
     }
@@ -495,9 +511,13 @@ fun MedPrimaryButton(
     container: Color = MedTheme.colors.jade,
     onContainer: Color = MedTheme.colors.onJade,
 ) {
+    val colors = MedTheme.colors
     val active = enabled && !loading
+    // Disabled is a flat neutral, not a faded accent. A 30%-opacity jade with
+    // white type on it is unreadable in light, and reads as "loading" rather
+    // than "not yet" in dark.
     val background by animateColorAsState(
-        targetValue = if (active) container else container.copy(alpha = 0.30f),
+        targetValue = if (active) container else colors.cardHighest,
         label = "primaryButtonBackground",
     )
     Row(
@@ -520,11 +540,16 @@ fun MedPrimaryButton(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,
-                color = if (active) onContainer else onContainer.copy(alpha = 0.6f),
+                color = if (active) onContainer else colors.textTertiary,
             )
             if (icon != null) {
                 Spacer(Modifier.width(8.dp))
-                MedIconGlyph(icon = icon, size = 19.dp, tint = onContainer, contentDescription = null)
+                MedIconGlyph(
+                    icon = icon,
+                    size = 19.dp,
+                    tint = if (active) onContainer else colors.textTertiary,
+                    contentDescription = null,
+                )
             }
         }
     }
@@ -891,14 +916,83 @@ fun MedTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailing: @Composable (() -> Unit)? = null,
+    onFocusChange: ((Boolean) -> Unit)? = null,
 ) {
     val colors = MedTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
+
+    // For fields that show something while they have focus - the facility
+    // field's suggestion list - and have to put it away when they lose it.
+    if (onFocusChange != null) {
+        LaunchedEffect(focused) { onFocusChange(focused) }
+    }
+
+    MedFieldFrame(
+        label = label,
+        modifier = modifier,
+        error = error,
+        active = focused,
+        trailing = trailing,
+    ) {
+        Box {
+            if (value.isEmpty() && placeholder != null) {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.textTertiary,
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                enabled = enabled,
+                readOnly = readOnly,
+                singleLine = singleLine,
+                minLines = minLines,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = if (enabled) colors.textPrimary else colors.textSecondary,
+                ),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.jade),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = keyboardType,
+                    imeAction = imeAction,
+                ),
+                keyboardActions = keyboardActions,
+                visualTransformation = visualTransformation,
+                interactionSource = interactionSource,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
+ * The shell every field in the app is drawn in: filled card, hairline border,
+ * the label set small and monospaced *inside* it, above the value.
+ *
+ * Extracted because there are three kinds of field - typed, tapped and chosen
+ * from a list - and they have to be indistinguishable until you touch them.
+ * Three separate implementations of the same rectangle is how a form ends up
+ * with two slightly different greys in it.
+ *
+ * [active] is focus for a text field and "menu is open" for a dropdown; both
+ * mean the same thing to the person looking at it, so both get the jade edge.
+ */
+@Composable
+private fun MedFieldFrame(
+    label: String,
+    modifier: Modifier = Modifier,
+    error: String? = null,
+    active: Boolean = false,
+    trailing: @Composable (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    val colors = MedTheme.colors
     val shape = RoundedCornerShape(16.dp)
     val borderColor = when {
         error != null -> colors.coral
-        focused -> colors.jade.copy(alpha = 0.45f)
+        active -> colors.jade.copy(alpha = 0.45f)
         else -> colors.hairline
     }
 
@@ -918,38 +1012,12 @@ fun MedTextField(
                     style = MedTypography.fieldLabel,
                     color = when {
                         error != null -> colors.coral
-                        focused -> colors.jadeSoft
+                        active -> colors.jadeSoft
                         else -> colors.textTertiary
                     },
                 )
                 Spacer(Modifier.height(4.dp))
-                Box {
-                    if (value.isEmpty() && placeholder != null) {
-                        Text(
-                            text = placeholder,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = colors.textTertiary,
-                        )
-                    }
-                    BasicTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        enabled = enabled,
-                        readOnly = readOnly,
-                        singleLine = singleLine,
-                        minLines = minLines,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.textPrimary),
-                        cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.jade),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = keyboardType,
-                            imeAction = imeAction,
-                        ),
-                        keyboardActions = keyboardActions,
-                        visualTransformation = visualTransformation,
-                        interactionSource = interactionSource,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                content()
             }
             if (trailing != null) {
                 Spacer(Modifier.width(12.dp))
@@ -962,6 +1030,235 @@ fun MedTextField(
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.coral,
                 modifier = Modifier.padding(start = 16.dp, top = 6.dp),
+            )
+        }
+    }
+}
+
+/**
+ * A field you tap rather than type into - a date, a facility, a time.
+ *
+ * It looks exactly like [MedTextField] and deliberately so: what changes when
+ * you touch it is that something opens, not that the field turns out to have
+ * been a button all along. [placeholder] is what stands in when nothing is
+ * chosen, and it says what would be there rather than sitting empty.
+ */
+@Composable
+fun MedSelectField(
+    value: String?,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Not set",
+    error: String? = null,
+    enabled: Boolean = true,
+    icon: MedIcon = MedIcons.ChevronRight,
+) {
+    val colors = MedTheme.colors
+    MedFieldFrame(
+        label = label,
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+        error = error,
+        trailing = {
+            MedIconGlyph(
+                icon = icon,
+                size = 20.dp,
+                tint = if (enabled) colors.textSecondary else colors.textTertiary,
+                contentDescription = null,
+            )
+        },
+    ) {
+        Text(
+            text = value?.takeIf { it.isNotBlank() } ?: placeholder,
+            style = MaterialTheme.typography.bodyLarge,
+            color = when {
+                !enabled -> colors.textTertiary
+                value.isNullOrBlank() -> colors.textTertiary
+                else -> colors.textPrimary
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * A field that opens a list of choices anchored to itself.
+ *
+ * Built on Material's [ExposedDropdownMenuBox] rather than a bare popup,
+ * because that is what gets the menu width, placement and dismiss behaviour
+ * right against the field it belongs to - only the field itself is ours.
+ *
+ * [emptyOption] adds an explicit way back to "not recorded". Optional fields
+ * need one: without it a mis-tap on a blood group is permanent, which is a
+ * poor property for a record somebody may act on in an emergency.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> MedDropdownField(
+    label: String,
+    options: List<T>,
+    selected: T?,
+    optionLabel: (T) -> String,
+    onSelected: (T?) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    error: String? = null,
+    placeholder: String = "Choose",
+    emptyOption: String? = null,
+) {
+    val colors = MedTheme.colors
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (enabled) expanded = it },
+        modifier = modifier,
+    ) {
+        MedFieldFrame(
+            label = label,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
+            error = error,
+            active = expanded,
+            trailing = {
+                MedIconGlyph(
+                    icon = if (expanded) MedIcons.ExpandLess else MedIcons.ExpandMore,
+                    size = 20.dp,
+                    tint = if (enabled) colors.textSecondary else colors.textTertiary,
+                    contentDescription = null,
+                )
+            },
+        ) {
+            val text = selected?.let(optionLabel)
+            Text(
+                text = text ?: placeholder,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (text == null || !enabled) colors.textTertiary else colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = colors.cardRaised,
+        ) {
+            if (emptyOption != null) {
+                MedDropdownItem(
+                    text = emptyOption,
+                    selected = selected == null,
+                    onClick = {
+                        onSelected(null)
+                        expanded = false
+                    },
+                )
+            }
+            options.forEach { option ->
+                MedDropdownItem(
+                    text = optionLabel(option),
+                    selected = option == selected,
+                    onClick = {
+                        onSelected(option)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** One row of a dropdown, with a tick against the current choice. */
+@Composable
+private fun MedDropdownItem(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = MedTheme.colors
+    DropdownMenuItem(
+        text = {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (selected) colors.jade else colors.textPrimary,
+            )
+        },
+        trailingIcon = if (selected) {
+            {
+                MedIconGlyph(
+                    icon = MedIcons.Check,
+                    size = 18.dp,
+                    tint = colors.jade,
+                    contentDescription = null,
+                )
+            }
+        } else {
+            null
+        },
+        onClick = onClick,
+    )
+}
+
+/**
+ * The search field at the head of a list.
+ *
+ * Single line, a magnifier that is decoration rather than a button, and a
+ * clear affordance that only exists once there is something to clear.
+ */
+@Composable
+fun MedSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Search",
+) {
+    val colors = MedTheme.colors
+    val shape = RoundedCornerShape(percent = 50)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.card)
+            .border(1.dp, colors.hairline, shape)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MedIconGlyph(
+            icon = MedIcons.Search,
+            size = 20.dp,
+            tint = colors.textTertiary,
+            contentDescription = null,
+        )
+        Spacer(Modifier.width(10.dp))
+        Box(modifier = Modifier.weight(1f)) {
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.textTertiary,
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.textPrimary),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.jade),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (value.isNotEmpty()) {
+            Spacer(Modifier.width(8.dp))
+            MedIconGlyph(
+                icon = MedIcons.Close,
+                size = 20.dp,
+                tint = colors.textSecondary,
+                contentDescription = "Clear search",
+                modifier = Modifier.clickable { onValueChange("") },
             )
         }
     }
@@ -1198,37 +1495,56 @@ fun MedFab(
 }
 
 /**
- * Design colours for Material's own [androidx.compose.material3.OutlinedTextField].
+ * Design colours for Material's date picker.
  *
- * The forms and the exposed dropdowns still use Material's field, because the
- * dropdown anchor, the date picker's read-only field and the IME wiring all
- * come with it. This gives those the same filled container, hairline border
- * and jade focus ring as [MedTextField], so a form does not look like it was
- * built by someone else.
+ * The picker itself stays Material's - a calendar grid with year selection,
+ * range limits and locale-correct week starts is not something to reimplement
+ * for the sake of a border radius. Only the palette is ours, so the dialog
+ * that opens from a [MedSelectField] does not arrive in a different app's
+ * colours.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun medFieldColors(): TextFieldColors {
+fun medDatePickerColors(): DatePickerColors {
     val colors = MedTheme.colors
-    return OutlinedTextFieldDefaults.colors(
-        focusedTextColor = colors.textPrimary,
-        unfocusedTextColor = colors.textPrimary,
-        disabledTextColor = colors.textSecondary,
-        focusedContainerColor = colors.card,
-        unfocusedContainerColor = colors.card,
-        disabledContainerColor = colors.card,
-        cursorColor = colors.jade,
-        focusedBorderColor = colors.jade.copy(alpha = 0.45f),
-        unfocusedBorderColor = colors.hairline,
-        disabledBorderColor = colors.hairline,
-        errorBorderColor = colors.coral,
-        focusedLabelColor = colors.jadeSoft,
-        unfocusedLabelColor = colors.textTertiary,
-        disabledLabelColor = colors.textTertiary,
-        errorLabelColor = colors.coral,
-        focusedTrailingIconColor = colors.textSecondary,
-        unfocusedTrailingIconColor = colors.textSecondary,
-        focusedSupportingTextColor = colors.textSecondary,
-        unfocusedSupportingTextColor = colors.textSecondary,
-        errorSupportingTextColor = colors.coral,
+    return DatePickerDefaults.colors(
+        containerColor = colors.card,
+        titleContentColor = colors.textSecondary,
+        headlineContentColor = colors.textPrimary,
+        weekdayContentColor = colors.textTertiary,
+        subheadContentColor = colors.textSecondary,
+        navigationContentColor = colors.textSecondary,
+        yearContentColor = colors.textPrimary,
+        currentYearContentColor = colors.jade,
+        selectedYearContentColor = colors.onJade,
+        selectedYearContainerColor = colors.jade,
+        dayContentColor = colors.textPrimary,
+        disabledDayContentColor = colors.textTertiary,
+        selectedDayContentColor = colors.onJade,
+        selectedDayContainerColor = colors.jade,
+        todayContentColor = colors.jade,
+        todayDateBorderColor = colors.jade,
+        dividerColor = colors.hairline,
+    )
+}
+
+/** The same treatment for the dose-time picker. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun medTimePickerColors(): TimePickerColors {
+    val colors = MedTheme.colors
+    return TimePickerDefaults.colors(
+        clockDialColor = colors.cardHighest,
+        clockDialSelectedContentColor = colors.onJade,
+        clockDialUnselectedContentColor = colors.textPrimary,
+        selectorColor = colors.jade,
+        periodSelectorBorderColor = colors.hairlineStrong,
+        periodSelectorSelectedContainerColor = colors.jade.copy(alpha = 0.16f),
+        periodSelectorSelectedContentColor = colors.jade,
+        periodSelectorUnselectedContentColor = colors.textSecondary,
+        timeSelectorSelectedContainerColor = colors.jade.copy(alpha = 0.16f),
+        timeSelectorSelectedContentColor = colors.jade,
+        timeSelectorUnselectedContainerColor = colors.cardHighest,
+        timeSelectorUnselectedContentColor = colors.textPrimary,
     )
 }

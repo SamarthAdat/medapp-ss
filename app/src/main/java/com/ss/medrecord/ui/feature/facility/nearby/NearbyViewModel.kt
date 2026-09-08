@@ -11,9 +11,15 @@ import com.ss.medrecord.domain.repository.FacilityRepository
 import com.ss.medrecord.domain.repository.PlacesRepository
 import com.ss.medrecord.domain.session.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class NearbyViewModel @Inject constructor(
     private val placesRepository: PlacesRepository,
@@ -25,6 +31,22 @@ class NearbyViewModel @Inject constructor(
     init {
         setState { copy(isMapsConfigured = placesRepository.isConfigured) }
         refreshPermissionState()
+
+        // What is already saved, so a result the user has been to before can say
+        // so rather than offering to file it a second time.
+        sessionManager.session
+            .flatMapLatest { session ->
+                when (session) {
+                    is AuthSession.Authenticated ->
+                        facilityRepository.observeFacilities(session.userId)
+
+                    else -> flowOf(emptyList())
+                }
+            }
+            .onEach { facilities ->
+                setState { copy(savedNames = facilities.map { it.name.lowercase() }.toSet()) }
+            }
+            .launchIn(viewModelScope)
     }
 
     override fun onEvent(event: NearbyEvent) {
@@ -45,7 +67,6 @@ class NearbyViewModel @Inject constructor(
                 sendEffect(NearbyEffect.RequestLocationPermission)
 
             NearbyEvent.EnableLocationClicked -> sendEffect(NearbyEffect.OpenLocationSettings)
-            NearbyEvent.ToggleMapView -> setState { copy(isMapView = !isMapView) }
 
             NearbyEvent.PermissionsRechecked -> {
                 val wasBlocked = !currentState.hasLocationPermission
@@ -123,6 +144,10 @@ class NearbyViewModel @Inject constructor(
      * the only point at which anything from Places is written down.
      */
     private fun save(place: NearbyPlace) {
+        if (currentState.isSaved(place)) {
+            sendEffect(NearbyEffect.ShowMessage("${place.name} is already in your clinics."))
+            return
+        }
         val userId = (sessionManager.session.value as? AuthSession.Authenticated)?.userId
         if (userId == null) {
             sendEffect(NearbyEffect.ShowMessage("Sign in before saving a clinic."))

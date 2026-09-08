@@ -42,11 +42,11 @@ data class HomeUiState(
 }
 
 sealed interface HomeEvent : UiEvent {
+    /** The profiles shelf: where a profile is added, edited or archived. */
     data object OpenPatients : HomeEvent
     /** Tapping a profile chip on the dashboard, rather than leaving to choose. */
     data class PatientSelected(val patientId: String) : HomeEvent
     data object OpenSettings : HomeEvent
-    data object SwitchPatient : HomeEvent
     data object AddFirstPatient : HomeEvent
     data object SyncNowClicked : HomeEvent
     data object OpenVisits : HomeEvent

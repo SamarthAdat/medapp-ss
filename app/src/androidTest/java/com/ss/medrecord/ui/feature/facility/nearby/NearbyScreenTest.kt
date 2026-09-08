@@ -1,5 +1,6 @@
 package com.ss.medrecord.ui.feature.facility.nearby
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -120,13 +121,49 @@ class NearbyScreenTest {
         ).assertIsDisplayed()
     }
 
+    @Test
+    fun theListAndTheMapAreBothOnScreenAtOnce() {
+        // Regression: the map used to live behind a Map/List toggle that only
+        // appeared once a search had returned results, so a user who searched
+        // and found nothing - or who had not searched yet - saw no sign the app
+        // had a map at all. The sheet's handle is the only control now.
+        setContent(searchedState())
+
+        composeRule.onNodeWithText("2 hospitals nearby").assertIsDisplayed()
+        composeRule.onNodeWithText("Sunrise Hospital").assertIsDisplayed()
+        // No view switch: the results and the map share the screen now.
+        composeRule.onNodeWithText("Map").assertDoesNotExist()
+        composeRule.onNodeWithText("List").assertDoesNotExist()
+    }
+
+    @Test
+    fun aPlaceAlreadyOnTheAccountIsNotOfferedASecondTime() {
+        // Google does not know which of its places this account has been to, so
+        // without the name check the same clinic can be filed twice.
+        setContent(searchedState().copy(savedNames = setOf("city care clinic")))
+
+        composeRule.onNodeWithText("SAVED").assertIsDisplayed()
+        composeRule.onAllNodes(hasText("Save")).assertCountEquals(1)
+    }
+
+    @Test
+    fun thePrivacyPromiseIsRepeatedOverTheResults() {
+        // The permission prompt made the promise; this is the screen the user is
+        // on once they have acted on it.
+        setContent(searchedState())
+
+        composeRule.onNodeWithText("Location never saved").assertIsDisplayed()
+    }
+
     private fun setContent(
         state: NearbyUiState,
         onEvent: (NearbyEvent) -> Unit = {},
     ) {
         composeRule.setContent {
             MedRecordTheme {
-                NearbyScreen(state = state, onEvent = onEvent)
+                // The map needs Play services and a GL surface; these tests are
+                // about which words reach the user, not about Google's renderer.
+                NearbyScreen(state = state, onEvent = onEvent, showMap = false)
             }
         }
     }

@@ -8,12 +8,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -21,7 +24,9 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberMarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.ss.medrecord.BuildConfig
+import com.ss.medrecord.R
 import com.ss.medrecord.core.location.Coordinates
+import com.ss.medrecord.ui.theme.MedTheme
 
 /** One thing to drop a pin on. */
 data class MapPin(
@@ -84,10 +89,26 @@ fun FacilityMap(
         )
     }
 
+    // Google's default map is a bright one. On the app's near-black canvas that
+    // is a white rectangle with the screen built around it; the style file is
+    // the same palette the rest of the design uses.
+    val context = LocalContext.current
+    val darkStyle = MedTheme.colors.isDark
+    val mapStyle = remember(darkStyle) {
+        if (darkStyle) {
+            MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_dark)
+        } else {
+            null
+        }
+    }
+
     GoogleMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,
-        properties = MapProperties(isMyLocationEnabled = showMyLocation),
+        properties = MapProperties(
+            isMyLocationEnabled = showMyLocation,
+            mapStyleOptions = mapStyle,
+        ),
         uiSettings = MapUiSettings(
             // The dedicated button is redundant next to the app's own controls
             // and sits on top of content on a short map.
@@ -130,13 +151,13 @@ private fun MapUnavailable(message: String, modifier: Modifier = Modifier) {
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MedTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = "Everything else on this screen still works.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MedTheme.colors.textTertiary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp),
             )
