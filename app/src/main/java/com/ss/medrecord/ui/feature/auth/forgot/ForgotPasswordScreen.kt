@@ -1,6 +1,9 @@
 package com.ss.medrecord.ui.feature.auth.forgot
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,15 +23,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ss.medrecord.ui.components.MedPrimaryButton
+import com.ss.medrecord.ui.components.NoticeCard
 import com.ss.medrecord.ui.feature.auth.AuthScaffold
 import com.ss.medrecord.ui.feature.auth.AuthTextField
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 
 @Composable
 fun ForgotPasswordRoute(
@@ -62,8 +70,10 @@ fun ForgotPasswordScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val colors = MedTheme.colors
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         AuthScaffold(
@@ -82,39 +92,31 @@ fun ForgotPasswordScreen(
             )
 
             if (state.isSent) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    ),
-                ) {
-                    Text(
-                        text = "If an account exists for that address, a reset link is on its way. Check your inbox and spam folder.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                }
+                Spacer(Modifier.height(14.dp))
+                NoticeCard(
+                    icon = MedIcons.Check,
+                    accent = colors.jade,
+                    title = "Check your inbox",
+                    text = "If an account exists for that address, a reset link is " +
+                        "on its way. Check your spam folder too.",
+                )
             }
 
-            Button(
+            Spacer(Modifier.height(18.dp))
+            MedPrimaryButton(
+                text = "Send reset link",
                 onClick = { onEvent(ForgotPasswordEvent.Submit) },
                 enabled = state.canSubmit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            ) {
-                if (state.isSubmitting) {
-                    Box(modifier = Modifier.size(20.dp)) {
-                        CircularProgressIndicator(strokeWidth = 2.dp)
-                    }
-                } else {
-                    Text(text = "Send reset link")
-                }
-            }
+                loading = state.isSubmitting,
+            )
 
-            TextButton(onClick = { onEvent(ForgotPasswordEvent.BackToSignIn) }) {
-                Text(text = "Back to sign in")
-            }
+            Spacer(Modifier.height(22.dp))
+            Text(
+                text = "Back to sign in",
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.jadeSoft,
+                modifier = Modifier.clickable { onEvent(ForgotPasswordEvent.BackToSignIn) },
+            )
         }
     }
 }

@@ -2,7 +2,15 @@
 <resources>
 
     <!-- Theme applied once Compose takes over rendering. -->
-    <style name="Theme.MedRecord" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.MedRecord" parent="android:Theme.Material.Light.NoActionBar">
+        <!--
+          Only ever visible for the frame between the splash going and Compose
+          drawing, and behind the system bars until MainActivity paints over it.
+        -->
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 
     <!--
       Launch theme. androidx.core:core-splashscreen requires the activity theme to

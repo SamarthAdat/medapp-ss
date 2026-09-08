@@ -25,6 +25,10 @@ serialization = "1.11.0"
 
 # --- Security / storage ----------------------------------------------------
 securityCrypto = "1.1.0"
+# 1.1.0 is the last stable release. The 1.2/1.4 alphas add a coroutine wrapper
+# and nothing else this app needs, and an alpha in the path between the user
+# and their own records is a poor trade for one suspend function.
+biometric = "1.1.0"
 sqlcipher = "4.18.0"
 sqlite = "2.7.0"
 
@@ -93,6 +97,7 @@ sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 
 # Background work
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }

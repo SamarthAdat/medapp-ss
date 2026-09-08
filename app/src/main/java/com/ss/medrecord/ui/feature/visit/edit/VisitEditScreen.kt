@@ -1,6 +1,7 @@
 package com.ss.medrecord.ui.feature.visit.edit
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,7 +47,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.domain.model.Facility
 import com.ss.medrecord.domain.model.FacilityType
 import com.ss.medrecord.domain.validation.VisitValidator
+import com.ss.medrecord.ui.components.medFieldColors
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -96,17 +103,12 @@ fun VisitEditScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = if (state.isEditing) "Edit visit" else "Add visit") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(VisitEditEvent.BackClicked) }) {
-                        Text(text = "Cancel")
-                    }
-                },
+            MedTopBar(
+                title = if (state.isEditing) "Edit visit" else "Add visit",
+                onBack = { onEvent(VisitEditEvent.BackClicked) },
             )
         },
     ) { innerPadding ->
@@ -150,6 +152,8 @@ fun VisitEditScreen(
             )
 
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.doctorName,
                 onValueChange = { onEvent(VisitEditEvent.DoctorNameChanged(it)) },
                 label = { Text(text = "Doctor name (optional)") },
@@ -161,6 +165,8 @@ fun VisitEditScreen(
             )
 
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.notes,
                 onValueChange = { onEvent(VisitEditEvent.NotesChanged(it)) },
                 label = { Text(text = "Diagnosis or notes (optional)") },
@@ -214,6 +220,8 @@ private fun PatientDropdown(state: VisitEditUiState, onEvent: (VisitEditEvent) -
         onExpandedChange = { if (!state.isSubmitting) expanded = it },
     ) {
         OutlinedTextField(
+            colors = medFieldColors(),
+            shape = RoundedCornerShape(16.dp),
             value = state.selectedPatient?.name.orEmpty(),
             onValueChange = {},
             readOnly = true,
@@ -246,6 +254,8 @@ private fun PatientDropdown(state: VisitEditUiState, onEvent: (VisitEditEvent) -
 private fun FacilityField(state: VisitEditUiState, onEvent: (VisitEditEvent) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
+            colors = medFieldColors(),
+            shape = RoundedCornerShape(16.dp),
             value = state.facilityName,
             onValueChange = { onEvent(VisitEditEvent.FacilityNameChanged(it)) },
             label = { Text(text = "Clinic or hospital") },
@@ -307,6 +317,8 @@ private fun FacilityTypeDropdown(
         onExpandedChange = { if (enabled) expanded = it },
     ) {
         OutlinedTextField(
+            colors = medFieldColors(),
+            shape = RoundedCornerShape(16.dp),
             value = selected.label,
             onValueChange = {},
             readOnly = true,
@@ -339,6 +351,8 @@ private fun DateField(
     onOpen: () -> Unit,
 ) {
     OutlinedTextField(
+        colors = medFieldColors(),
+        shape = RoundedCornerShape(16.dp),
         value = epochDay?.let(::formatEpochDay) ?: "",
         onValueChange = {},
         label = { Text(text = label) },

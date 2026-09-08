@@ -38,9 +38,14 @@ import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.Report
 import com.ss.medrecord.domain.model.Visit
 import com.ss.medrecord.domain.model.VisitWithFacility
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
 import com.ss.medrecord.ui.components.MedicineTile
 import com.ss.medrecord.ui.components.ReportTile
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -97,22 +102,18 @@ fun VisitDetailScreen(
     loadThumbnail: suspend (Report) -> ImageBitmap? = { null },
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Visit") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(VisitDetailEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "Visit",
+                onBack = { onEvent(VisitDetailEvent.BackClicked) },
                 actions = {
                     if (state.visit != null) {
-                        TextButton(onClick = { onEvent(VisitDetailEvent.EditClicked) }) {
-                            Text(text = "Edit")
-                        }
+                        MedBarAction(
+                            text = "Edit",
+                            onClick = { onEvent(VisitDetailEvent.EditClicked) },
+                        )
                     }
                 },
             )

@@ -2,14 +2,15 @@ package com.ss.medrecord.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,7 +20,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.MedicineFrequency
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
+import com.ss.medrecord.ui.theme.MedTypography
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -39,42 +43,44 @@ fun MedicineTile(
     onToggleActive: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = MedTheme.colors
     val muted = !medicine.isActive
+    val accent = if (muted) colors.textTertiary else colors.violet
 
-    Card(
-        modifier = modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (muted) {
-                MaterialTheme.colorScheme.surfaceContainerLow
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            },
+    MedCard(
+        modifier = modifier,
+        onClick = onClick,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            start = 14.dp,
+            top = 12.dp,
+            end = 8.dp,
+            bottom = 12.dp,
         ),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 14.dp, top = 12.dp, end = 6.dp, bottom = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            IconTile(
+                icon = if (muted) MedIcons.Pause else MedIcons.Medication,
+                accent = accent,
+            )
+            Spacer(Modifier.width(14.dp))
+
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = medicine.name,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
                         maxLines = 1,
-                        color = if (muted) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                        color = if (muted) colors.textSecondary else colors.textPrimary,
                     )
                     medicine.dosage?.takeIf { it.isNotBlank() }?.let { dosage ->
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "  $dosage",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = dosage,
+                            style = MedTypography.monoCaption,
+                            color = colors.textSecondary,
                             maxLines = 1,
                         )
                     }
@@ -83,23 +89,24 @@ fun MedicineTile(
                 Text(
                     text = medicine.scheduleSummary(),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.textSecondary,
                     maxLines = 1,
                     modifier = Modifier.padding(top = 2.dp),
                 )
 
                 Text(
                     text = courseLine(medicine),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MedTypography.monoMicro,
+                    color = colors.textTertiary,
                     maxLines = 1,
+                    modifier = Modifier.padding(top = 4.dp),
                 )
 
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MedTypography.monoMicro,
+                        color = colors.textTertiary,
                         maxLines = 1,
                     )
                 }
@@ -108,7 +115,13 @@ fun MedicineTile(
             Switch(
                 checked = medicine.isActive,
                 onCheckedChange = onToggleActive,
-                modifier = Modifier.padding(start = 8.dp),
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = colors.onViolet,
+                    checkedTrackColor = colors.violet,
+                    uncheckedTrackColor = colors.cardHighest,
+                    uncheckedBorderColor = colors.hairlineStrong,
+                ),
+                modifier = Modifier.padding(start = 4.dp),
             )
         }
     }
@@ -119,7 +132,7 @@ private fun courseLine(medicine: Medicine): String {
     val start = medicine.startDate.format(DATE_FORMAT)
     val end = medicine.endDate?.format(DATE_FORMAT)
     return when {
-        !medicine.isActive -> if (end == null) "Paused · from $start" else "Paused · $start to $end"
+        !medicine.isActive -> if (end == null) "PAUSED · FROM $start" else "PAUSED · $start to $end"
         end == null -> "From $start · ongoing"
         else -> "$start to $end"
     }

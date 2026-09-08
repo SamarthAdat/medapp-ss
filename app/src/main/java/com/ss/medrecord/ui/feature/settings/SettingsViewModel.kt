@@ -1,6 +1,7 @@
 package com.ss.medrecord.ui.feature.settings
 
 import androidx.lifecycle.viewModelScope
+import com.ss.medrecord.core.biometric.BiometricGate
 import com.ss.medrecord.core.common.DataResult
 import com.ss.medrecord.core.ui.BaseViewModel
 import com.ss.medrecord.core.ui.toUserMessage
@@ -13,6 +14,7 @@ import com.ss.medrecord.domain.model.AuditEntityType
 import com.ss.medrecord.domain.model.AuthSession
 import com.ss.medrecord.domain.repository.AuthRepository
 import com.ss.medrecord.domain.repository.ConsentRepository
+import com.ss.medrecord.domain.session.AppearanceManager
 import com.ss.medrecord.domain.session.SessionManager
 import com.ss.medrecord.domain.sync.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +36,8 @@ class SettingsViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
     private val syncManager: SyncManager,
     private val sessionManager: SessionManager,
+    private val appearanceManager: AppearanceManager,
+    private val biometricGate: BiometricGate,
     consentRepository: ConsentRepository,
 ) : BaseViewModel<SettingsUiState, SettingsEvent, SettingsEffect>(SettingsUiState()) {
 
@@ -74,6 +78,14 @@ class SettingsViewModel @Inject constructor(
                 }
             }
             .onEach { entries -> setState { copy(accessLog = entries) } }
+            .launchIn(viewModelScope)
+
+        appearanceManager.appearanceMode
+            .onEach { mode -> setState { copy(appearanceMode = mode) } }
+            .launchIn(viewModelScope)
+
+        appearanceManager.biometricLockEnabled
+            .onEach { enabled -> setState { copy(biometricLockEnabled = enabled) } }
             .launchIn(viewModelScope)
 
         refreshPermissionState()
@@ -125,6 +137,24 @@ class SettingsViewModel @Inject constructor(
             }
 
             SettingsEvent.PermissionsRechecked -> refreshPermissionState()
+
+            is SettingsEvent.AppearanceModeChanged ->
+                appearanceManager.setAppearanceMode(event.mode)
+
+            is SettingsEvent.BiometricLockToggled -> {
+                // Refuses to store an intent the device cannot honour, rather
+                // than accepting it and silently never locking.
+                if (event.enabled && !currentState.canUseBiometricLock) {
+                    sendEffect(
+                        SettingsEffect.ShowMessage(
+                            currentState.biometricUnavailableReason
+                                ?: "This phone cannot use a fingerprint lock.",
+                        ),
+                    )
+                } else {
+                    appearanceManager.setBiometricLockEnabled(event.enabled)
+                }
+            }
         }
     }
 
@@ -133,6 +163,9 @@ class SettingsViewModel @Inject constructor(
             copy(
                 notificationsEnabled = notifier.canPost(),
                 exactAlarmsAllowed = alarmScheduler.canScheduleExact(),
+                // Re-read alongside the permissions: an enrolment can be added
+                // or wiped in the same trip to system settings.
+                biometricAvailability = biometricGate.availability(),
             )
         }
     }

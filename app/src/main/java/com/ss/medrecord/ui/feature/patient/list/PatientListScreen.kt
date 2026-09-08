@@ -35,8 +35,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.core.ui.components.EmptyState
 import com.ss.medrecord.domain.model.Patient
 import com.ss.medrecord.domain.model.Relationship
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedFab
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
 import com.ss.medrecord.ui.components.PatientAvatar
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 
 @Composable
 fun PatientListRoute(
@@ -82,31 +88,28 @@ fun PatientListScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Patients") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(PatientListEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "Whose records?",
+                subtitle = "Everything on screen is filed under one person",
+                onBack = { onEvent(PatientListEvent.BackClicked) },
                 actions = {
                     if (state.hasArchived) {
-                        TextButton(onClick = { onEvent(PatientListEvent.ToggleShowArchived) }) {
-                            Text(text = if (state.showArchived) "Hide archived" else "Archived")
-                        }
+                        MedBarAction(
+                            text = if (state.showArchived) "Hide archived" else "Archived",
+                            onClick = { onEvent(PatientListEvent.ToggleShowArchived) },
+                        )
                     }
                 },
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            MedFab(
+                text = "Add a profile",
+                icon = MedIcons.PersonAdd,
                 onClick = { onEvent(PatientListEvent.AddPatient) },
-                text = { Text(text = "Add patient") },
-                icon = { Text(text = "+", style = MaterialTheme.typography.titleLarge) },
             )
         },
     ) { innerPadding ->
@@ -116,7 +119,7 @@ fun PatientListScreen(
                 description = "Add a profile for yourself or a family member to start keeping records.",
                 modifier = Modifier.padding(innerPadding),
             )
-            return@Scaffold
+            return@MedScreen
         }
 
         LazyColumn(

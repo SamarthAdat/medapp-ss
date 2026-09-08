@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches PrimaryContainerLight so the splash blends into the app theme. -->
-    <color name="splash_background">#FF9CF1F0</color>
+    <!--
+      The splash and the window behind Compose. Both match the light canvas from
+      the design (CanvasLight), so the launch does not flash a different colour
+      before the first frame is drawn.
+    -->
+    <color name="splash_background">#FFF4F6F4</color>
+    <color name="window_background">#FFF4F6F4</color>
 </resources>

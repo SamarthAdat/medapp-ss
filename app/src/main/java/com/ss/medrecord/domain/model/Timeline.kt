@@ -85,15 +85,56 @@ data class RecordCounts(
  */
 data class DashboardSnapshot(
     val activePatient: Patient? = null,
-    val patientCount: Int = 0,
+    /**
+     * Every profile on the account, so the dashboard can offer the switch
+     * inline instead of sending the user to another screen to make it.
+     */
+    val patients: List<Patient> = emptyList(),
     val counts: RecordCounts = RecordCounts(),
     val upcomingAppointments: List<UpcomingAppointment> = emptyList(),
-    val dosesDueToday: List<Reminder> = emptyList(),
+    /**
+     * Every medicine reminder scheduled for today, whatever state it is in -
+     * not only the ones still pending. The dashboard needs the denominator as
+     * well as the numerator to say how far through the day the schedule is.
+     */
+    val dosesToday: List<Reminder> = emptyList(),
     val recentActivity: List<TimelineEntry> = emptyList(),
+    /**
+     * Visits per month across the current calendar year, January first.
+     *
+     * Always twelve entries, including the months still ahead. A chart that
+     * grew a column each month would rescale under the reader every few weeks;
+     * a fixed year that fills up left to right does not.
+     */
+    val visitsByMonth: List<Int> = List(MONTHS_IN_YEAR) { 0 },
 ) {
-    val needsFirstPatient: Boolean get() = patientCount == 0
+    val patientCount: Int get() = patients.size
+
+    val needsFirstPatient: Boolean get() = patients.isEmpty()
+
+    val visitsThisYear: Int get() = visitsByMonth.sum()
 
     /** True when there is something time-sensitive worth leading the screen with. */
     val hasUpcoming: Boolean
         get() = upcomingAppointments.isNotEmpty() || dosesDueToday.isNotEmpty()
+
+    /** Today's doses that have not gone off yet, soonest first. */
+    val dosesDueToday: List<Reminder>
+        get() = dosesToday.filter { it.isPending }.sortedBy { it.triggerAtMillis }
+
+    val dosesScheduledToday: Int get() = dosesToday.size
+
+    /**
+     * Doses whose time has passed, out of everything scheduled for today.
+     *
+     * Note what this is *not*: it is not adherence. The app arms reminders and
+     * records that they fired or were dismissed; it has never had any way to
+     * know whether a tablet was actually swallowed. Calling this "taken" would
+     * put a number on screen that looks like a clinical fact and is not, so
+     * both the field and the label on the dashboard say "left" instead.
+     */
+    val dosesElapsedToday: Int get() = dosesToday.count { !it.isPending }
 }
+
+/** Twelve, but named, because the sparkline reads it as a contract. */
+const val MONTHS_IN_YEAR = 12

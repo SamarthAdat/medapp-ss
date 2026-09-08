@@ -1,6 +1,11 @@
 package com.ss.medrecord.ui.feature.auth.signup
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,10 +31,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ss.medrecord.ui.components.MedPrimaryButton
 import com.ss.medrecord.ui.feature.auth.AuthScaffold
+import com.ss.medrecord.ui.feature.auth.OfflineNote
 import com.ss.medrecord.ui.feature.auth.AuthTextField
 import com.ss.medrecord.ui.feature.auth.PasswordTextField
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 
 @Composable
 fun SignUpRoute(
@@ -63,8 +73,10 @@ fun SignUpScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val colors = MedTheme.colors
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         AuthScaffold(
@@ -80,6 +92,7 @@ fun SignUpScreen(
                 enabled = !state.isSubmitting,
             )
 
+            Spacer(Modifier.height(12.dp))
             AuthTextField(
                 value = state.email,
                 onValueChange = { onEvent(SignUpEvent.EmailChanged(it)) },
@@ -89,6 +102,7 @@ fun SignUpScreen(
                 enabled = !state.isSubmitting,
             )
 
+            Spacer(Modifier.height(12.dp))
             PasswordTextField(
                 value = state.password,
                 onValueChange = { onEvent(SignUpEvent.PasswordChanged(it)) },
@@ -97,6 +111,7 @@ fun SignUpScreen(
                 enabled = !state.isSubmitting,
             )
 
+            Spacer(Modifier.height(12.dp))
             PasswordTextField(
                 value = state.confirmPassword,
                 onValueChange = { onEvent(SignUpEvent.ConfirmPasswordChanged(it)) },
@@ -107,32 +122,42 @@ fun SignUpScreen(
             )
 
             Text(
-                text = "You will be asked to review and accept the data-processing consent before adding any records.",
+                text = "You will be asked to review and accept the data-processing " +
+                    "consent before adding any records.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp),
+                color = colors.textTertiary,
+                modifier = Modifier.padding(top = 14.dp),
             )
 
-            Button(
+            Spacer(Modifier.height(14.dp))
+            MedPrimaryButton(
+                text = "Create account",
                 onClick = { onEvent(SignUpEvent.Submit) },
                 enabled = state.canSubmit,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
+                loading = state.isSubmitting,
+                icon = MedIcons.ArrowForward,
+            )
+
+            Spacer(Modifier.height(22.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                if (state.isSubmitting) {
-                    Box(modifier = Modifier.size(20.dp)) {
-                        CircularProgressIndicator(strokeWidth = 2.dp)
-                    }
-                } else {
-                    Text(text = "Create account")
-                }
+                Text(
+                    text = "Already have an account?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary,
+                )
+                Text(
+                    text = "Sign in",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.jadeSoft,
+                    modifier = Modifier.clickable { onEvent(SignUpEvent.SignInClicked) },
+                )
             }
 
-            TextButton(onClick = { onEvent(SignUpEvent.SignInClicked) }) {
-                Text(text = "Already have an account? Sign in")
-            }
+            Spacer(Modifier.height(30.dp))
+            OfflineNote()
         }
     }
 }

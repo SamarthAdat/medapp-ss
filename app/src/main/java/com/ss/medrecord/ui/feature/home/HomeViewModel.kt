@@ -3,6 +3,7 @@ package com.ss.medrecord.ui.feature.home
 import androidx.lifecycle.viewModelScope
 import com.ss.medrecord.core.connectivity.ConnectivityObserver
 import com.ss.medrecord.core.ui.BaseViewModel
+import com.ss.medrecord.domain.session.ActivePatientManager
 import com.ss.medrecord.domain.sync.SyncManager
 import com.ss.medrecord.domain.usecase.ObserveDashboard
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     connectivityObserver: ConnectivityObserver,
     observeDashboard: ObserveDashboard,
+    private val activePatientManager: ActivePatientManager,
     private val syncManager: SyncManager,
 ) : BaseViewModel<HomeUiState, HomeEvent, HomeEffect>(
     initialState = HomeUiState(networkStatus = connectivityObserver.currentStatus()),
@@ -42,6 +44,12 @@ class HomeViewModel @Inject constructor(
         when (event) {
             HomeEvent.OpenPatients, HomeEvent.SwitchPatient ->
                 sendEffect(HomeEffect.NavigateToPatients)
+
+            // Changing the selection is enough on its own: every patient-scoped
+            // flow is derived from it, so the dashboard redraws without this
+            // needing to touch state or navigate anywhere.
+            is HomeEvent.PatientSelected ->
+                activePatientManager.setActivePatient(event.patientId)
 
             HomeEvent.OpenSettings -> sendEffect(HomeEffect.NavigateToSettings)
             HomeEvent.AddFirstPatient -> sendEffect(HomeEffect.NavigateToAddPatient)

@@ -40,8 +40,13 @@ import com.ss.medrecord.domain.model.Report
 import com.ss.medrecord.domain.model.ReportFileType
 import com.ss.medrecord.domain.model.ReportWithContext
 import com.ss.medrecord.domain.model.UploadStatus
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
 import com.ss.medrecord.ui.components.ReportTile
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -89,34 +94,24 @@ fun ReportListScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
+        glow = MedTheme.colors.azure,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(text = "Reports")
-                        Text(
-                            text = if (state.showAllPatients) {
-                                "All patients"
-                            } else {
-                                state.activePatient?.name.orEmpty()
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+            MedTopBar(
+                title = "Reports",
+                subtitle = if (state.showAllPatients) {
+                    "All patients"
+                } else {
+                    state.activePatient?.name
                 },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(ReportListEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+                onBack = { onEvent(ReportListEvent.BackClicked) },
                 actions = {
-                    TextButton(onClick = { onEvent(ReportListEvent.ToggleAllPatients) }) {
-                        Text(text = if (state.showAllPatients) "This patient" else "All patients")
-                    }
+                    MedBarAction(
+                        text = if (state.showAllPatients) "This patient" else "All patients",
+                        onClick = { onEvent(ReportListEvent.ToggleAllPatients) },
+                        accent = MedTheme.colors.azure,
+                    )
                 },
             )
         },

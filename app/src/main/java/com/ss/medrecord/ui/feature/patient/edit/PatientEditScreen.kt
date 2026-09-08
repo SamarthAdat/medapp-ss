@@ -1,5 +1,6 @@
 package com.ss.medrecord.ui.feature.patient.edit
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,7 +44,13 @@ import com.ss.medrecord.domain.model.BloodGroup
 import com.ss.medrecord.domain.model.Gender
 import com.ss.medrecord.domain.model.Relationship
 import com.ss.medrecord.domain.validation.PatientValidator
+import com.ss.medrecord.ui.components.medFieldColors
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -89,17 +96,12 @@ fun PatientEditScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = if (state.isEditing) "Edit patient" else "Add patient") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(PatientEditEvent.BackClicked) }) {
-                        Text(text = "Cancel")
-                    }
-                },
+            MedTopBar(
+                title = if (state.isEditing) "Edit patient" else "Add patient",
+                onBack = { onEvent(PatientEditEvent.BackClicked) },
             )
         },
     ) { innerPadding ->
@@ -131,6 +133,8 @@ fun PatientEditScreen(
             // Read-only field that opens the picker: free-typed dates are a
             // reliable source of ambiguous day/month entry.
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.dateOfBirthEpochDay?.let(::formatEpochDay) ?: "",
                 onValueChange = {},
                 label = { Text(text = "Date of birth (optional)") },
@@ -208,6 +212,8 @@ private fun LabelledTextField(
     singleLine: Boolean = true,
 ) {
     OutlinedTextField(
+        colors = medFieldColors(),
+        shape = RoundedCornerShape(16.dp),
         value = value,
         onValueChange = onValueChange,
         label = { Text(text = label) },
@@ -237,6 +243,8 @@ private fun <T> EnumDropdown(
         onExpandedChange = { if (enabled) expanded = it },
     ) {
         OutlinedTextField(
+            colors = medFieldColors(),
+            shape = RoundedCornerShape(16.dp),
             value = optionLabel(selected),
             onValueChange = {},
             readOnly = true,
@@ -278,6 +286,8 @@ private fun <T> NullableEnumDropdown(
         onExpandedChange = { if (enabled) expanded = it },
     ) {
         OutlinedTextField(
+            colors = medFieldColors(),
+            shape = RoundedCornerShape(16.dp),
             value = selected?.let(optionLabel) ?: "",
             onValueChange = {},
             readOnly = true,

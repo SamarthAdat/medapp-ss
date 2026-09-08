@@ -40,7 +40,13 @@ import com.ss.medrecord.domain.model.Patient
 import com.ss.medrecord.domain.model.Relationship
 import com.ss.medrecord.domain.model.Visit
 import com.ss.medrecord.domain.model.VisitWithFacility
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedFab
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -88,42 +94,27 @@ fun VisitListScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(text = "Visits")
-                        state.activePatient?.let { patient ->
-                            Text(
-                                text = patient.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(VisitListEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "Visits",
+                subtitle = state.activePatient?.name,
+                onBack = { onEvent(VisitListEvent.BackClicked) },
                 actions = {
                     if (state.visits.isNotEmpty()) {
-                        TextButton(onClick = { onEvent(VisitListEvent.ToggleGrouping) }) {
-                            Text(text = if (state.groupByFacility) "By date" else "By clinic")
-                        }
+                        MedBarAction(
+                            text = if (state.groupByFacility) "By date" else "By clinic",
+                            onClick = { onEvent(VisitListEvent.ToggleGrouping) },
+                        )
                     }
                 },
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            MedFab(
+                text = "Add visit",
                 onClick = { onEvent(VisitListEvent.AddVisit) },
-                text = { Text(text = "Add visit") },
-                icon = { Text(text = "+", style = MaterialTheme.typography.titleLarge) },
             )
         },
     ) { innerPadding ->

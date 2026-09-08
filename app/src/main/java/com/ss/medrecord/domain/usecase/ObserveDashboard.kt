@@ -3,10 +3,12 @@ package com.ss.medrecord.domain.usecase
 import com.ss.medrecord.core.common.AppConstants
 import com.ss.medrecord.domain.model.AuthSession
 import com.ss.medrecord.domain.model.DashboardSnapshot
+import com.ss.medrecord.domain.model.MONTHS_IN_YEAR
 import com.ss.medrecord.domain.model.MedicineWithContext
 import com.ss.medrecord.domain.model.Patient
 import com.ss.medrecord.domain.model.RecordCounts
 import com.ss.medrecord.domain.model.Reminder
+import com.ss.medrecord.domain.model.ReminderType
 import com.ss.medrecord.domain.model.ReportWithContext
 import com.ss.medrecord.domain.model.VisitWithContext
 import com.ss.medrecord.domain.repository.MedicineRepository
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -64,7 +67,7 @@ class ObserveDashboard @Inject constructor(
         activePatientManager.patients,
         reminderRepository.observeToday(userId),
     ) { records, activePatient, patients, reminders ->
-        snapshot(records, activePatient, patients.size, reminders)
+        snapshot(records, activePatient, patients, reminders)
     }
 
     private fun records(userId: String): Flow<AccountRecords> = combine(
@@ -76,14 +79,14 @@ class ObserveDashboard @Inject constructor(
     private fun snapshot(
         records: AccountRecords,
         activePatient: Patient?,
-        patientCount: Int,
+        patients: List<Patient>,
         reminders: List<Reminder>,
     ): DashboardSnapshot {
         val patientId = activePatient?.patientId
 
         return DashboardSnapshot(
             activePatient = activePatient,
-            patientCount = patientCount,
+            patients = patients,
             counts = RecordCounts(
                 visits = records.visits.count { it.visit.patientId == patientId },
                 reports = records.reports.count { it.report.patientId == patientId },
@@ -99,11 +102,34 @@ class ObserveDashboard @Inject constructor(
                 visits = records.visits,
                 withinDays = AppConstants.UPCOMING_VISITS_WINDOW_DAYS,
             ),
-            dosesDueToday = reminders.filter { it.isPending }.sortedBy { it.triggerAtMillis },
+            // Everything scheduled today, not only what is still pending: the
+            // snapshot derives "still due" from this, and needs the full day to
+            // say how much of it is behind the user.
+            dosesToday = reminders
+                .filter { it.type == ReminderType.MEDICINE }
+                .sortedBy { it.triggerAtMillis },
+            visitsByMonth = visitsByMonth(records.visits),
             recentActivity = BuildTimeline
                 .from(records.visits, records.reports, records.medicines)
                 .take(RECENT_ACTIVITY_LIMIT),
         )
+    }
+
+    /**
+     * Visits per calendar month of the current year.
+     *
+     * Scoped to the account rather than the active patient, matching the
+     * appointments above: the chart is about how much this household has been
+     * to a clinic, which is the question someone glancing at it is asking.
+     */
+    private fun visitsByMonth(visits: List<VisitWithContext>): List<Int> {
+        val year = LocalDate.now().year
+        val buckets = IntArray(MONTHS_IN_YEAR)
+        visits.asSequence()
+            .map { LocalDate.ofEpochDay(it.visit.visitDateEpochDay) }
+            .filter { it.year == year }
+            .forEach { buckets[it.monthValue - 1]++ }
+        return buckets.toList()
     }
 
     private data class AccountRecords(

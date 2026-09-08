@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The dark canvas (CanvasDark). This only follows the *system* setting, which
+      is why MainActivity also paints the window from Compose: a user who has
+      chosen Light while the phone is in dark mode would otherwise see these
+      colours behind the status and navigation bars.
+    -->
+    <color name="splash_background">#FF0B0E12</color>
+    <color name="window_background">#FF0B0E12</color>
+</resources>

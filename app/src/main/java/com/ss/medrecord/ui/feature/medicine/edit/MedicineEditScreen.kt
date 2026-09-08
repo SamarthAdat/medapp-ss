@@ -1,5 +1,6 @@
 package com.ss.medrecord.ui.feature.medicine.edit
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -27,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Surface
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,7 +53,13 @@ import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.MedicineFrequency
 import com.ss.medrecord.domain.model.VisitWithFacility
 import com.ss.medrecord.domain.validation.MedicineValidator
+import com.ss.medrecord.ui.components.medFieldColors
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -110,19 +117,13 @@ fun MedicineEditScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
+        glow = MedTheme.colors.violet,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = if (state.isEditing) "Edit medicine" else "Add medicine")
-                },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(MedicineEditEvent.BackClicked) }) {
-                        Text(text = "Cancel")
-                    }
-                },
+            MedTopBar(
+                title = if (state.isEditing) "Edit medicine" else "Add medicine",
+                onBack = { onEvent(MedicineEditEvent.BackClicked) },
             )
         },
     ) { innerPadding ->
@@ -137,6 +138,8 @@ fun MedicineEditScreen(
             PatientSelector(state = state, onEvent = onEvent)
 
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.name,
                 onValueChange = { onEvent(MedicineEditEvent.NameChanged(it)) },
                 label = { Text(text = "Medicine name") },
@@ -147,6 +150,8 @@ fun MedicineEditScreen(
             )
 
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.dosage,
                 onValueChange = { onEvent(MedicineEditEvent.DosageChanged(it)) },
                 label = { Text(text = "Dosage") },
@@ -185,6 +190,8 @@ fun MedicineEditScreen(
             )
 
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.instructions,
                 onValueChange = { onEvent(MedicineEditEvent.InstructionsChanged(it)) },
                 label = { Text(text = "Instructions") },
@@ -252,6 +259,8 @@ private fun PatientSelector(
         onExpandedChange = { expanded = it },
     ) {
         OutlinedTextField(
+            colors = medFieldColors(),
+            shape = RoundedCornerShape(16.dp),
             value = state.selectedPatient?.name.orEmpty(),
             onValueChange = {},
             readOnly = true,
@@ -289,6 +298,8 @@ private fun VisitSelector(
             onExpandedChange = { expanded = it },
         ) {
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.selectedVisit?.let { visitLabel(it) } ?: "Not from a logged visit",
                 onValueChange = {},
                 readOnly = true,
@@ -395,6 +406,8 @@ private fun DateField(
     onClear: (() -> Unit)? = null,
 ) {
     OutlinedTextField(
+        colors = medFieldColors(),
+        shape = RoundedCornerShape(16.dp),
         value = epochDay?.let { LocalDate.ofEpochDay(it).format(DATE_FORMAT) } ?: "",
         onValueChange = {},
         label = { Text(text = label) },

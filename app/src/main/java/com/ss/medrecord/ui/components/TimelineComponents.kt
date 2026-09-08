@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,20 +17,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ss.medrecord.domain.model.TimelineEntry
 import com.ss.medrecord.domain.model.TimelineKind
+import com.ss.medrecord.ui.theme.MedIcon
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
+import com.ss.medrecord.ui.theme.MedTypography
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 /**
  * One row of merged history.
  *
- * The kind is carried by a small lettered dot rather than an icon set. Three
- * kinds do not justify pulling in an icon dependency, and a single letter in a
- * tinted circle is legible at a glance and readable by a screen reader without
- * a content description that repeats the label below it.
+ * The kind is carried by a tinted icon tile, using the accent that kind owns
+ * everywhere else in the app - jade for a visit, azure for a report, violet
+ * for a medicine. Someone who has learned the colours on the dashboard can
+ * read this list without reading the labels at all.
  */
 @Composable
 fun TimelineRow(
@@ -42,22 +43,28 @@ fun TimelineRow(
     showPatientName: Boolean = false,
     showDate: Boolean = true,
 ) {
+    val colors = MedTheme.colors
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        KindDot(kind = entry.kind)
+        IconTile(
+            icon = entry.kind.icon,
+            accent = entry.kind.accent(),
+        )
 
-        Column(modifier = Modifier
-            .weight(1f)
-            .padding(start = 12.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 14.dp),
+        ) {
             Text(
                 text = entry.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.textPrimary,
                 maxLines = 1,
             )
 
@@ -69,7 +76,7 @@ fun TimelineRow(
             Text(
                 text = details.joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.textSecondary,
                 maxLines = 2,
             )
         }
@@ -77,37 +84,28 @@ fun TimelineRow(
         if (showDate) {
             Text(
                 text = entry.date.format(ROW_DATE_FORMAT),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, top = 2.dp),
+                style = MedTypography.monoCaption,
+                color = colors.textTertiary,
+                modifier = Modifier.padding(start = 8.dp),
             )
         }
     }
 }
 
-@Composable
-private fun KindDot(kind: TimelineKind) {
-    val colour = when (kind) {
-        TimelineKind.VISIT -> MaterialTheme.colorScheme.primary
-        TimelineKind.REPORT -> MaterialTheme.colorScheme.tertiary
-        TimelineKind.MEDICINE -> MaterialTheme.colorScheme.secondary
+/** The glyph each kind is drawn with, in one place so no screen picks its own. */
+val TimelineKind.icon: MedIcon
+    get() = when (this) {
+        TimelineKind.VISIT -> MedIcons.Stethoscope
+        TimelineKind.REPORT -> MedIcons.Description
+        TimelineKind.MEDICINE -> MedIcons.Medication
     }
 
-    Surface(
-        shape = CircleShape,
-        color = colour,
-        modifier = Modifier.size(28.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = kind.label.take(1),
-                style = MaterialTheme.typography.labelMedium,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-        }
-    }
+/** And the accent, which is the same one the dashboard counts use. */
+@Composable
+fun TimelineKind.accent(): Color = when (this) {
+    TimelineKind.VISIT -> MedTheme.colors.jade
+    TimelineKind.REPORT -> MedTheme.colors.azure
+    TimelineKind.MEDICINE -> MedTheme.colors.violet
 }
 
 /** The sticky-ish header above each day's entries on the timeline screen. */
@@ -120,11 +118,10 @@ fun TimelineDateHeader(date: LocalDate, modifier: Modifier = Modifier) {
         else -> date.format(HEADER_DATE_FORMAT)
     }
 
-    Text(
+    SectionLabel(
         text = label,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(top = 16.dp, bottom = 2.dp),
+        color = MedTheme.colors.textTertiary,
+        modifier = modifier.padding(top = 18.dp, bottom = 4.dp),
     )
 }
 

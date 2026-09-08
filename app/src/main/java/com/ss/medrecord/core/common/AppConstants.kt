@@ -18,4 +18,15 @@ object AppConstants {
     const val UPCOMING_VISITS_WINDOW_DAYS: Int = 7
 
     const val DATASTORE_SETTINGS_NAME = "medrecord_settings"
+
+    /**
+     * Appearance and app-lock preferences.
+     *
+     * A separate store from [DATASTORE_SETTINGS_NAME] because a DataStore file
+     * may only be opened once per process - two `preferencesDataStore`
+     * delegates naming the same file crash at first read. It also keeps a
+     * device-local preference out of the store that is cleared on sign-out:
+     * the next person to use this phone should still get the theme they chose.
+     */
+    const val DATASTORE_APPEARANCE_NAME = "medrecord_appearance"
 }

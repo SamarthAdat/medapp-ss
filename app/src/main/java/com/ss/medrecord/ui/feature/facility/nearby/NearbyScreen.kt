@@ -50,8 +50,13 @@ import com.ss.medrecord.domain.model.NearbyPlace
 import com.ss.medrecord.domain.model.PlaceSearchType
 import com.ss.medrecord.ui.components.FacilityMap
 import com.ss.medrecord.ui.components.MapPin
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
 import com.ss.medrecord.ui.components.openDirections
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 
 @Composable
 fun NearbyRoute(
@@ -113,22 +118,19 @@ fun NearbyScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Find nearby") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(NearbyEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "Find nearby",
+                subtitle = "Your location is used to search and never saved",
+                onBack = { onEvent(NearbyEvent.BackClicked) },
                 actions = {
                     if (state.mappable.isNotEmpty()) {
-                        TextButton(onClick = { onEvent(NearbyEvent.ToggleMapView) }) {
-                            Text(text = if (state.isMapView) "List" else "Map")
-                        }
+                        MedBarAction(
+                            text = if (state.isMapView) "List" else "Map",
+                            onClick = { onEvent(NearbyEvent.ToggleMapView) },
+                        )
                     }
                 },
             )

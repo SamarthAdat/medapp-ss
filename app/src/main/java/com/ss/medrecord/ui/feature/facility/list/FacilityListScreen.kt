@@ -1,6 +1,7 @@
 package com.ss.medrecord.ui.feature.facility.list
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,9 +37,16 @@ import com.ss.medrecord.core.location.Coordinates
 import com.ss.medrecord.core.ui.components.FullScreenLoading
 import com.ss.medrecord.domain.model.Facility
 import com.ss.medrecord.domain.model.FacilityType
+import com.ss.medrecord.ui.components.medFieldColors
 import com.ss.medrecord.ui.components.FacilityMap
 import com.ss.medrecord.ui.components.MapPin
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedFab
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 
 @Composable
 fun FacilityListRoute(
@@ -69,16 +77,12 @@ fun FacilityListScreen(
     onEvent: (FacilityListEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Clinics and hospitals") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(FacilityListEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "Clinics and hospitals",
+                onBack = { onEvent(FacilityListEvent.BackClicked) },
                 actions = {
                     if (state.canShowMap) {
                         TextButton(onClick = { onEvent(FacilityListEvent.ToggleMapView) }) {
@@ -98,7 +102,7 @@ fun FacilityListScreen(
     ) { innerPadding ->
         if (state.isLoading) {
             FullScreenLoading(modifier = Modifier.padding(innerPadding))
-            return@Scaffold
+            return@MedScreen
         }
 
         Column(
@@ -107,6 +111,8 @@ fun FacilityListScreen(
                 .padding(innerPadding),
         ) {
             OutlinedTextField(
+                colors = medFieldColors(),
+                shape = RoundedCornerShape(16.dp),
                 value = state.query,
                 onValueChange = { onEvent(FacilityListEvent.QueryChanged(it)) },
                 label = { Text(text = "Search") },

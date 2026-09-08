@@ -2,6 +2,8 @@ package com.ss.medrecord.ui.feature.home
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -69,8 +71,10 @@ class HomeScreenTest {
     fun anUpcomingAppointmentIsShownWithHowFarAway() {
         setContent(state(dashboard = dashboard()))
 
-        composeRule.onNodeWithText("Coming up").assertIsDisplayed()
-        composeRule.onNodeWithText("In 2 days · City Care Clinic").assertIsDisplayed()
+        composeRule.onNodeWithText("NEXT APPOINTMENT").assertIsDisplayed()
+        // Not the figure itself: "2" is also the active-medicine count lower
+        // down, and a bare digit is the wrong thing to match a screen on.
+        composeRule.onNodeWithText("days away").assertIsDisplayed()
     }
 
     @Test
@@ -86,7 +90,7 @@ class HomeScreenTest {
             ),
         )
 
-        composeRule.onNodeWithText("Coming up").assertDoesNotExist()
+        composeRule.onNodeWithText("NEXT APPOINTMENT").assertDoesNotExist()
     }
 
     @Test
@@ -94,7 +98,10 @@ class HomeScreenTest {
         val events = mutableListOf<HomeEvent>()
         setContent(state(dashboard = dashboard()), onEvent = events::add)
 
-        composeRule.onNodeWithText("In 2 days · City Care Clinic").performClick()
+        // The hero card is the tap target, and the facility name appears on it
+        // as well as on the visit row below - so this addresses the one inside
+        // the card by the label only the hero has.
+        composeRule.onNodeWithText("NEXT APPOINTMENT").performClick()
 
         assertEquals(listOf(HomeEvent.AppointmentClicked("v1")), events)
     }
@@ -104,7 +111,8 @@ class HomeScreenTest {
         setContent(state(dashboard = dashboard()))
 
         composeRule.onNodeWithText("Recent activity").assertIsDisplayed()
-        composeRule.onNodeWithText("City Care Clinic").assertIsDisplayed()
+        // Twice over: once on the hero appointment card, once as the visit row.
+        composeRule.onAllNodesWithText("City Care Clinic").assertCountEquals(2)
         composeRule.onNodeWithText("blood-panel.pdf").assertIsDisplayed()
     }
 
@@ -122,7 +130,7 @@ class HomeScreenTest {
 
     @Test
     fun anAccountWithNoPatientsIsPromptedToAddOne() {
-        setContent(state(dashboard = DashboardSnapshot(patientCount = 0)))
+        setContent(state(dashboard = DashboardSnapshot(patients = emptyList())))
 
         composeRule.onNodeWithText("Add your first patient").assertIsDisplayed()
         // None of the record sections make sense before there is a person.
@@ -159,10 +167,10 @@ class HomeScreenTest {
         doses: List<Reminder> = emptyList(),
     ) = DashboardSnapshot(
         activePatient = patient,
-        patientCount = 1,
+        patients = listOf(patient),
         counts = RecordCounts(visits = 12, reports = 7, activeMedicines = 2),
         upcomingAppointments = appointments,
-        dosesDueToday = doses,
+        dosesToday = doses,
         recentActivity = listOf(
             TimelineEntry(
                 id = "VISIT:v1",

@@ -200,6 +200,12 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.security.crypto)
 
+    // Optional app lock (see core/biometric). Brings androidx.fragment with it,
+    // which is why MainActivity is a FragmentActivity: BiometricPrompt shows
+    // itself through the fragment manager and cannot attach to a bare
+    // ComponentActivity.
+    implementation(libs.androidx.biometric)
+
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)

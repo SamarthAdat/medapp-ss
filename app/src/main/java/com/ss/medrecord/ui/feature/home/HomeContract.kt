@@ -43,6 +43,8 @@ data class HomeUiState(
 
 sealed interface HomeEvent : UiEvent {
     data object OpenPatients : HomeEvent
+    /** Tapping a profile chip on the dashboard, rather than leaving to choose. */
+    data class PatientSelected(val patientId: String) : HomeEvent
     data object OpenSettings : HomeEvent
     data object SwitchPatient : HomeEvent
     data object AddFirstPatient : HomeEvent

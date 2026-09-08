@@ -32,6 +32,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ss.medrecord.core.ui.components.ErrorState
 import com.ss.medrecord.domain.model.formatFileSize
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.theme.MedIcons
+import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 
 @Composable
 fun ReportViewerRoute(
@@ -58,35 +64,21 @@ fun ReportViewerScreen(
     onEvent: (ReportViewerEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
+    MedScreen(
+        modifier = modifier,
+        glow = MedTheme.colors.azure,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = state.report?.fileName ?: "Report",
-                            maxLines = 1,
-                        )
-                        state.report?.let { report ->
-                            Text(
-                                text = buildString {
-                                    append(formatFileSize(report.fileSizeBytes))
-                                    if (state.isMultiPage) {
-                                        append(" - ${state.pages.size} pages")
-                                    }
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+            MedTopBar(
+                title = state.report?.fileName ?: "Report",
+                subtitle = state.report?.let { report ->
+                    buildString {
+                        append(formatFileSize(report.fileSizeBytes))
+                        if (state.isMultiPage) {
+                            append(" · ${state.pages.size} pages")
                         }
                     }
                 },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(ReportViewerEvent.BackClicked) }) {
-                        Text(text = "Close")
-                    }
-                },
+                onBack = { onEvent(ReportViewerEvent.BackClicked) },
             )
         },
     ) { innerPadding ->

@@ -1,5 +1,8 @@
 package com.ss.medrecord.ui.feature.timeline
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,7 +33,15 @@ import com.ss.medrecord.domain.model.TimelineEntry
 import com.ss.medrecord.domain.model.TimelineKind
 import com.ss.medrecord.ui.components.TimelineDateHeader
 import com.ss.medrecord.ui.components.TimelineRow
+import com.ss.medrecord.ui.components.MedEmptyState
+import com.ss.medrecord.ui.components.MedFilterChip
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.components.accent
+import com.ss.medrecord.ui.components.icon
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.LocalDate
 
 @Composable
@@ -65,28 +76,30 @@ fun TimelineRoute(
  * question this screen answers is "what happened in March", and three separate
  * type-sorted lists cannot answer it.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen(
     state: TimelineUiState,
     onEvent: (TimelineEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
+    val colors = MedTheme.colors
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = state.title) },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(TimelineEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "History",
+                subtitle = state.title,
+                onBack = { onEvent(TimelineEvent.BackClicked) },
                 actions = {
                     if (state.hasFiltersApplied) {
-                        TextButton(onClick = { onEvent(TimelineEvent.FiltersCleared) }) {
-                            Text(text = "Clear")
-                        }
+                        Text(
+                            text = "Clear",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colors.jade,
+                            modifier = Modifier
+                                .clickable { onEvent(TimelineEvent.FiltersCleared) }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
                     }
                 },
             )
@@ -94,31 +107,37 @@ fun TimelineScreen(
     ) { innerPadding ->
         if (state.isLoading) {
             FullScreenLoading(modifier = Modifier.padding(innerPadding))
-            return@Scaffold
+            return@MedScreen
         }
 
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
         ) {
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    FilterChip(
+                    MedFilterChip(
+                        text = "All patients",
                         selected = state.showAllPatients,
                         onClick = { onEvent(TimelineEvent.ToggleAllPatients) },
-                        label = { Text(text = "All patients") },
+                        icon = MedIcons.Person,
                     )
                     TimelineKind.entries.forEach { kind ->
-                        FilterChip(
+                        MedFilterChip(
+                            text = kind.label,
                             selected = kind in state.kindFilter,
                             onClick = { onEvent(TimelineEvent.KindToggled(kind)) },
-                            label = { Text(text = kind.label) },
+                            icon = kind.icon,
+                            accent = kind.accent(),
                         )
                     }
                 }
@@ -126,30 +145,22 @@ fun TimelineScreen(
 
             if (state.isEmpty) {
                 item {
-                    Column(modifier = Modifier.padding(vertical = 40.dp)) {
-                        Text(
-                            text = if (state.hasFiltersApplied) {
-                                "Nothing matches those filters"
-                            } else {
-                                "Nothing recorded yet"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = "Visits, reports and medicines appear here together, " +
-                                "newest first.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
+                    MedEmptyState(
+                        title = if (state.hasFiltersApplied) {
+                            "Nothing matches those filters"
+                        } else {
+                            "Nothing recorded yet"
+                        },
+                        message = "Visits, reports and medicines appear here " +
+                            "together, newest first.",
+                        icon = MedIcons.History,
+                    )
                 }
             }
 
             state.grouped.forEach { (date, entries) ->
                 item(key = "header-$date") {
                     TimelineDateHeader(date = date)
-                    HorizontalDivider()
                 }
 
                 items(

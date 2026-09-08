@@ -4,8 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.ss.medrecord.domain.model.Patient
 import com.ss.medrecord.domain.model.Relationship
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import kotlin.math.absoluteValue
 
 /**
@@ -51,8 +56,8 @@ fun PatientAvatar(
     ) {
         Text(
             text = patient.initials,
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold,
+            color = MedTheme.colors.canvas,
+            fontWeight = FontWeight.Bold,
             fontSize = (size.value / 2.6f).sp,
         )
     }
@@ -68,31 +73,41 @@ fun ActivePatientChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AssistChip(
-        onClick = onClick,
-        modifier = modifier,
-        label = {
-            Text(
-                text = patient?.name ?: "Select patient",
-                style = MaterialTheme.typography.labelLarge,
-            )
-        },
-        leadingIcon = patient?.let { { PatientAvatar(patient = it, size = 24.dp) } },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        ),
-    )
+    val colors = MedTheme.colors
+    val shape = RoundedCornerShape(percent = 50)
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(colors.jade.copy(alpha = 0.14f))
+            .border(1.dp, colors.jade.copy(alpha = 0.35f), shape)
+            .clickable(onClick = onClick)
+            .padding(start = 5.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (patient != null) {
+            PatientAvatar(patient = patient, size = 26.dp)
+        }
+        Text(
+            text = patient?.name?.substringBefore(' ') ?: "Select patient",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textPrimary,
+        )
+    }
 }
 
+/**
+ * The four accents, used as identity colours here rather than as meanings.
+ *
+ * Only four, and always in the same order: a palette this small means two
+ * profiles in a family of three are unlikely to collide, and a stable order
+ * means a profile keeps its colour when another is added or removed.
+ */
 @Composable
-private fun avatarPalette(): List<Color> = listOf(
-    MaterialTheme.colorScheme.primary,
-    MaterialTheme.colorScheme.tertiary,
-    Color(0xFF6A4C93),
-    Color(0xFF1B7F79),
-    Color(0xFFB5651D),
-    Color(0xFF4A6FA5),
-)
+private fun avatarPalette(): List<Color> = MedTheme.colors.let { colors ->
+    listOf(colors.jade, colors.azure, colors.violet, colors.amber)
+}
 
 @Preview(showBackground = true)
 @Composable

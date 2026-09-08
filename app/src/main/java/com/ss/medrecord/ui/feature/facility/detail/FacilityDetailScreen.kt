@@ -41,9 +41,14 @@ import com.ss.medrecord.domain.model.FacilityType
 import com.ss.medrecord.domain.model.Visit
 import com.ss.medrecord.ui.components.FacilityMap
 import com.ss.medrecord.ui.components.MapPin
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
 import com.ss.medrecord.ui.components.openDialer
 import com.ss.medrecord.ui.components.openDirections
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -101,17 +106,12 @@ fun FacilityDetailScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = state.facility?.name ?: "Facility") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(FacilityDetailEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = state.facility?.name ?: "Facility",
+                onBack = { onEvent(FacilityDetailEvent.BackClicked) },
             )
         },
     ) { innerPadding ->

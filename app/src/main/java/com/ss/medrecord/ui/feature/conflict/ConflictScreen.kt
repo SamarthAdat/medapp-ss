@@ -37,7 +37,12 @@ import com.ss.medrecord.core.ui.components.FullScreenLoading
 import com.ss.medrecord.domain.model.ConflictEntityType
 import com.ss.medrecord.domain.model.ConflictResolution
 import com.ss.medrecord.domain.model.SyncConflict
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -83,28 +88,26 @@ fun ConflictScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
+        glow = MedTheme.colors.coral,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Review changes") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(ConflictEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "Review changes",
+                subtitle = "Choose which copy of each record to keep",
+                onBack = { onEvent(ConflictEvent.BackClicked) },
                 actions = {
-                    TextButton(onClick = { onEvent(ConflictEvent.Refresh) }) {
-                        Text(text = "Refresh")
-                    }
+                    MedBarAction(
+                        text = "Refresh",
+                        onClick = { onEvent(ConflictEvent.Refresh) },
+                    )
                 },
             )
         },
     ) { innerPadding ->
         if (state.isLoading) {
             FullScreenLoading(modifier = Modifier.padding(innerPadding))
-            return@Scaffold
+            return@MedScreen
         }
 
         LazyColumn(

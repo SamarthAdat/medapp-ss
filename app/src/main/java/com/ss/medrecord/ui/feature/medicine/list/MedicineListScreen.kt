@@ -9,10 +9,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -48,8 +48,14 @@ import com.ss.medrecord.domain.model.Medicine
 import com.ss.medrecord.domain.model.MedicineFrequency
 import com.ss.medrecord.domain.model.MedicineWithContext
 import com.ss.medrecord.domain.model.Reminder
+import com.ss.medrecord.ui.components.MedBarAction
+import com.ss.medrecord.ui.components.MedFab
+import com.ss.medrecord.ui.components.MedScreen
+import com.ss.medrecord.ui.components.MedTopBar
 import com.ss.medrecord.ui.components.MedicineTile
+import com.ss.medrecord.ui.theme.MedIcons
 import com.ss.medrecord.ui.theme.MedRecordTheme
+import com.ss.medrecord.ui.theme.MedTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -143,24 +149,22 @@ fun MedicineListScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+    MedScreen(
+        modifier = modifier,
+        glow = MedTheme.colors.violet,
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Medicines") },
-                navigationIcon = {
-                    TextButton(onClick = { onEvent(MedicineListEvent.BackClicked) }) {
-                        Text(text = "Back")
-                    }
-                },
+            MedTopBar(
+                title = "Medicines",
+                onBack = { onEvent(MedicineListEvent.BackClicked) },
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            MedFab(
+                text = "Add medicine",
+                icon = MedIcons.Medication,
                 onClick = { onEvent(MedicineListEvent.AddClicked) },
-                text = { Text(text = "Add medicine") },
-                icon = {},
+                accent = MedTheme.colors.violet,
+                onAccent = MedTheme.colors.onViolet,
             )
         },
     ) { innerPadding ->

@@ -17,6 +17,9 @@ data class ConsentUiState(
     val isReconsent: Boolean = false,
 ) : UiState {
     val allAccepted: Boolean get() = accepted.values.all { it }
+
+    /** How many clauses are ticked, for the "2/3" marker in the header. */
+    val acceptedCount: Int get() = accepted.values.count { it }
     val canSubmit: Boolean get() = allAccepted && !isSubmitting
 
     fun isAccepted(type: ConsentType): Boolean = accepted[type] == true
