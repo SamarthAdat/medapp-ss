@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -665,6 +666,12 @@ private fun HomeBottomBar(onEvent: (HomeEvent) -> Unit, enabled: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.canvas)
+            // Scaffold puts the bottom bar at the bottom of the window, not
+            // above the system bars, so on a gesture-navigation device the
+            // handle sits across these five targets. The canvas is painted
+            // first so it still reaches the edge of the screen; only the
+            // controls move up.
+            .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Row(
